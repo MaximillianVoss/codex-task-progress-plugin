@@ -1,0 +1,12 @@
+{
+  "name": "codex-task-progress",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline, evidence-scoped approximate progress renderer for a Codex skill plugin",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/core.test.mjs tests/cli.test.mjs tests/html.test.mjs",
+    "example": "node skills/task-progress/scripts/render.mjs --input examples/multiple.safe.json --at 2026-10-21T12:10:00Z"
+  }
+}

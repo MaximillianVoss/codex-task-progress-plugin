@@ -1,0 +1,12 @@
+{
+  "name": "codex-task-progress-marketplace",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned GitHub distribution of the offline Codex Task Progress skill plugin",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test plugins/task-progress/tests/core.test.mjs plugins/task-progress/tests/cli.test.mjs plugins/task-progress/tests/html.test.mjs tests/distribution.test.mjs",
+    "example": "node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/multiple.safe.json --at 2026-10-21T12:10:00Z"
+  }
+}

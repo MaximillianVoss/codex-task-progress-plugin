@@ -1,0 +1,76 @@
+# Примерный прогресс для Codex
+
+Skill-плагин показывает одну задачу компактной шкалой, несколько — таблицей. Результат включает точную область, примерно оценённый процент/диапазон, принятую оценку checklist, стадию, evidence, препятствия и свежесть. Unknown остаётся неизвестным; общий процент требует явного состава и весов. Работа или потраченное время сами по себе не добавляют проценты.
+
+Текущая версия распространения: **1.2.0**, закреплённый ref **v1.2.0**. Доступны полоса и круговой прогресс, четыре выбираемые темы и этапы. Расчёт прогресса сохранён; контракт дополнен необязательным поясняющим перечнем этапов. Публичный репозиторий и Release доступны для чтения без авторизации.
+
+В Codex с поддержкой inline-визуализации skill показывает графический результат; текстовый Markdown остаётся запасным вариантом и форматом CLI по умолчанию. Он не создаёт закреплённый нативный виджет, фоновые опросы, API-вызовы или записи в Planner. Нужен Node.js20+, установка npm-зависимостей не требуется.
+
+## Если плагин уже подключён
+
+Используйте доступный `$task-progress:task-progress` (либо `$task-progress`, если клиент показывает короткое имя). Не устанавливайте второй экземпляр ради нового чата. Для кругового вида, тем и этапов нужна версия1.2.0. При обновлении проверьте существующий источник marketplace, версию и enabled только этого плагина.
+
+Пример рабочего запроса: «Покажи примерный прогресс task TASK_ID из явно указанного файла `progress.safe.json`, сохрани источник и unknown». Для нескольких задач указать project/portfolio ID либо точные taskId. Данные должны отвечать [контракту](plugins/task-progress/skills/task-progress/references/contract.md).
+
+## Установка в другой среде
+
+Рекомендуется закреплённый tag, а для строгой повторяемости — SHA коммита из страницы Release. Не подменяйте установленный plugin cache вручную.
+
+Для Windows с WSL:
+
+```powershell
+# Выберите свободную постоянную папку на X, вне OneDrive.
+wsl -d Ubuntu-22.04 --exec git clone --branch v1.2.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin
+codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin' --json
+codex plugin add task-progress@task-progress-local --json
+codex plugin list --marketplace task-progress-local --json
+```
+
+В новой Linux/macOS-среде:
+
+```sh
+git clone --branch v1.2.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
+codex plugin marketplace add ./codex-task-progress-plugin --json
+codex plugin add task-progress@task-progress-local --json
+codex plugin list --marketplace task-progress-local --json
+```
+
+Для чтения публичного репозитория по HTTPS ключ GitHub не нужен. Для записи владелец использует свою существующую настройку SSH в WSL.
+
+Marketplace называется `task-progress-local`; он указывает на локально проверенную копию из GitHub. Если такой источник уже зарегистрирован, сначала проверьте его существующий путь и версию; не заменяйте источник молча. Команда marketplace add только регистрирует источник, plugin add устанавливает плагин. Затем отдельно проверьте installed/enabled именно его карточки в Plugins.
+
+Процедура не требует перезапуска приложения или изменений других плагинов. Автоматическое обновление каталога skills зависит от клиента: если skill не виден в текущем чате, рассчитывайте на следующую сессию либо явно прочитайте SKILL.md из фактической установленной копии и вызовите её renderer. Успешный пример не заменяет проверку installed/enabled.
+
+Альтернатива: скачать ZIP из публичного GitHub Release, сверить размер/SHA256 по `release.safe.json`, распаковать в постоянную папку и зарегистрировать её как local marketplace.
+
+## Проверка и сборка
+
+Из корня репозитория:
+
+```powershell
+npm test
+npm run example
+pwsh -File scripts/Build-Release.ps1
+```
+
+Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и выполняет шесть пробных запусков renderer из архива. Результат — `dist/task-progress-1.2.0-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
+
+Для отдельной демонстрации:
+
+```powershell
+node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/single.safe.json --at 2026-10-21T12:10:00Z
+node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/multiple.safe.json --at 2026-10-21T12:10:00Z --format html
+node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/stages.safe.json --at 2026-10-21T12:10:00Z --format html --view ring --theme indigo --stages show
+```
+
+Примеры синтетические. `--at` воспроизводит датированный пример, не освежает состояние. Для рабочих данных его не передавать.
+
+HTML — автономный fragment без сети и сторонних ресурсов. Его собственный скрипт переключает только оформление: «Полоса»/«Круг», «Ночная»/«Светлая»/«Индиго»/«Лесная», показ этапов. Начальные настройки задаются `--view bar|ring --theme night|light|indigo|forest --stages show|hide`. Skill сохраняет fragment в разрешённой папке текущего чата и показывает inline. Если клиент это не поддерживает или разрешено только чтение, используйте Markdown. Renderer сам не пишет файлы. Источники и подробности раскрываются; неизвестное и устаревшее не превращаются в ноль.
+
+Этапы поступают из `progress.stages`, когда оценка рассчитывается по весам, либо из необязательного `task.stages` с отдельным источником для пояснения фиксированного/примерного процента. Второй вариант не пересчитывает оценку. Без явного перечня показано «Этапы не переданы». Пример обоих способов — `examples/stages.safe.json`.
+
+## Отключение
+
+Отключить только «Примерный прогресс» в Plugins либо выполнить `codex plugin remove task-progress@task-progress-local`. Удалять marketplace командой `codex plugin marketplace remove task-progress-local` только если этот источник больше не нужен. Другие плагины, исходные задачи и Planner не изменяются.
+
+Контракт, ограничения и правила evidence — в [SKILL.md](plugins/task-progress/skills/task-progress/SKILL.md) и [описании данных](plugins/task-progress/skills/task-progress/references/contract.md). Формат пакета — по [официальной документации OpenAI](https://developers.openai.com/plugins/build/plugins).

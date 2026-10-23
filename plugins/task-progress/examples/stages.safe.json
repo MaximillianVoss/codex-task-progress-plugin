@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "demo": true,
+  "selection": { "kind": "project", "id": "demo-stages" },
+  "staleAfterMinutes": 60,
+  "tasks": [
+    {
+      "id": "demo-checklist-stages", "title": "Принятый checklist и этапы", "projectId": "demo-stages", "portfolioId": "demo-portfolio",
+      "status": "checking", "stage": "Проверка решения", "updatedAt": "2026-10-21T12:00:00Z", "dataStatus": "ok",
+      "accepted": [{ "label": "Требования согласованы", "evidence": "demo:requirements-accepted" }], "blockers": ["Завершить проверку"], "acceptance": null,
+      "progress": { "basis": "fixed_checklist", "scope": { "kind": "task", "id": "demo-checklist-stages" }, "value": 28, "source": { "ref": "demo:checklist-v1", "evidence": "Принятая оценка 28% сохранена независимо от списка этапов" } },
+      "stages": {
+        "source": { "ref": "demo:display-stages-v1", "evidence": "Учебный список этапов; используется только для отображения" },
+        "items": [
+          { "id": "requirements", "label": "Требования", "status": "accepted", "evidence": "demo:requirements-accepted" },
+          { "id": "validation", "label": "Проверка решения", "status": "checking" },
+          { "id": "release", "label": "Выпуск", "status": "pending" },
+          { "id": "follow-up", "label": "Следующая итерация", "status": "unknown" }
+        ]
+      }
+    },
+    {
+      "id": "demo-weighted-stages", "title": "Прогресс по весам этапов", "projectId": "demo-stages", "portfolioId": "demo-portfolio",
+      "status": "working", "stage": "Разработка", "updatedAt": "2026-10-21T12:00:00Z", "dataStatus": "ok",
+      "accepted": [{ "label": "Требования согласованы", "evidence": "demo:weighted-requirements-accepted" }], "blockers": ["Разработка и выпуск"], "acceptance": null,
+      "progress": {
+        "basis": "stages", "scope": { "kind": "task", "id": "demo-weighted-stages" }, "value": null,
+        "source": { "ref": "demo:weighted-stages-v1", "evidence": "Явные веса 2:3:5; принят только первый этап: 2/10 = 20%" },
+        "stages": [
+          { "id": "requirements", "label": "Требования", "weight": 2, "status": "accepted", "evidence": "demo:weighted-requirements-accepted" },
+          { "id": "implementation", "label": "Разработка", "weight": 3, "status": "working" },
+          { "id": "release", "label": "Выпуск", "weight": 5, "status": "pending" }
+        ]
+      }
+    }
+  ],
+  "aggregation": {
+    "scope": { "kind": "project", "id": "demo-stages" },
+    "members": [{ "taskId": "demo-checklist-stages", "weight": 1 }, { "taskId": "demo-weighted-stages", "weight": 1 }],
+    "source": { "ref": "demo:stages-membership-v1", "evidence": "Полный учебный состав проекта; две задачи с явными равными весами" }
+  }
+}

@@ -1,0 +1,16 @@
+# Task Progress1.2.0
+
+Устанавливаемый Codex skill-плагин: русская шкала/таблица примерного прогресса, evidence, выбранная область и свежесть. Только локальное чтение явно переданных safe JSON/stdin. Node.js20+, без сторонних зависимостей.
+
+Установка из закреплённого GitHub ref, проверка и откат описаны в [инструкции репозитория](https://github.com/MaximillianVoss/codex-task-progress-plugin/tree/v1.2.0#readme). Если `$task-progress:task-progress` уже доступен, используйте его без повторной установки.
+
+Быстрая проверка из этой папки:
+
+```powershell
+node --test tests/core.test.mjs tests/cli.test.mjs tests/html.test.mjs
+node skills/task-progress/scripts/render.mjs --input examples/single.safe.json --at 2026-10-21T12:10:00Z
+```
+
+Рабочие данные — по [контракту](skills/task-progress/references/contract.md). Не передавать секреты и переписку. Evidence не открываются автоматически. Дизайн «Пульт задач» доступен через `--format html`: вид `--view bar|ring`, тема `--theme night|light|indigo|forest`, этапы `--stages show|hide`. Эти параметры можно переключать прямо в блоке. Markdown (`--format markdown`) остаётся текстовым форматом по умолчанию. Нет фонового мониторинга и записей в исходную систему.
+
+Сборка: `pwsh -File scripts/Build-Package.ps1`. Локальные READY/CURRENT содержат пути текущей сборки; для передачи используйте только внешний `release.safe.json` из корневого build script. Сборщик не меняет установленный плагин и не подтверждает его discovery.

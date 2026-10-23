@@ -1,0 +1,12 @@
+/dist/
+/snapshots/
+/node_modules/
+/.venv/
+/design-qa.md
+plugins/task-progress/dist/
+plugins/task-progress/evidence/
+plugins/task-progress/CURRENT.safe.json
+plugins/task-progress/READY.safe.json
+*.log
+.env
+.env.*

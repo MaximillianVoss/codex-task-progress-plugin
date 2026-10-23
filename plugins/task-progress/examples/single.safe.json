@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "demo": true,
+  "selection": { "kind": "task", "id": "demo-g2" },
+  "staleAfterMinutes": 60,
+  "tasks": [
+    {
+      "id": "demo-g2", "title": "Учебный G2", "projectId": "demo-project", "portfolioId": "demo-portfolio",
+      "status": "paused", "stage": "Ожидается подтверждение следующего контрольного пункта", "updatedAt": "2026-10-21T12:00:00Z", "dataStatus": "ok",
+      "accepted": [{ "label": "Фиксированный checklist принят", "evidence": "demo:checklist-v1:accepted" }],
+      "blockers": ["Новая приёмка отсутствует"], "acceptance": null,
+      "progress": {
+        "basis": "fixed_checklist", "scope": { "kind": "task", "id": "demo-g2" }, "value": 28,
+        "source": { "ref": "demo:checklist-v1", "evidence": "Принята оценка 28%; это синтетический пример" },
+        "visualEstimate": { "value": 70, "source": { "ref": "demo:visual", "evidence": "Визуальное впечатление, не меняющее checklist" } }
+      }
+    }
+  ],
+  "aggregation": null
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "demo": true,
+  "selection": { "kind": "project", "id": "demo-project" },
+  "staleAfterMinutes": 60,
+  "tasks": [
+    {
+      "id": "demo-g2", "title": "Учебный G2", "projectId": "demo-project", "portfolioId": "demo-portfolio",
+      "status": "paused", "stage": "Следующий контрольный пункт", "updatedAt": "2026-10-21T12:00:00Z", "dataStatus": "ok",
+      "accepted": [{ "label": "Checklist", "evidence": "demo:checklist-v1:accepted" }], "blockers": ["Новая приёмка"], "acceptance": null,
+      "progress": { "basis": "fixed_checklist", "scope": { "kind": "task", "id": "demo-g2" }, "value": 28, "source": { "ref": "demo:checklist-v1", "evidence": "Принята оценка 28%" } }
+    },
+    {
+      "id": "demo-package", "title": "Учебный пакет", "projectId": "demo-project", "portfolioId": "demo-portfolio",
+      "status": "checking", "stage": "Проверка примера", "updatedAt": "2026-10-21T12:05:00Z", "dataStatus": "ok",
+      "accepted": [{ "label": "Исходный пример", "evidence": "demo:source-review" }], "blockers": ["Проверка отображения"], "acceptance": null,
+      "progress": { "basis": "estimate", "scope": { "kind": "task", "id": "demo-package" }, "value": { "min": 50, "max": 70 }, "source": { "ref": "demo:stage-estimate", "evidence": "Диапазон оценки, не приёмка" } }
+    },
+    {
+      "id": "demo-unknown", "title": "Нет свежего отчёта", "projectId": "demo-project", "portfolioId": "demo-portfolio",
+      "status": "unknown", "stage": null, "updatedAt": null, "dataStatus": "unknown", "accepted": [], "blockers": [], "acceptance": null,
+      "progress": { "basis": "unknown", "scope": { "kind": "task", "id": "demo-unknown" }, "value": null, "source": null }
+    }
+  ],
+  "aggregation": {
+    "scope": { "kind": "project", "id": "demo-project" },
+    "members": [{ "taskId": "demo-g2", "weight": 3 }, { "taskId": "demo-package", "weight": 2 }, { "taskId": "demo-unknown", "weight": 5 }],
+    "source": { "ref": "demo:membership-v1", "evidence": "Полный учебный состав; явные веса 3:2:5" }
+  }
+}

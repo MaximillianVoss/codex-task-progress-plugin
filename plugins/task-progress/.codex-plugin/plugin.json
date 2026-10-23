@@ -1,0 +1,21 @@
+{
+  "name": "task-progress",
+  "version": "1.2.0",
+  "description": "Честный примерный прогресс задач из явно выбранных безопасных данных.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Примерный прогресс",
+    "shortDescription": "Прогресс, область, доказательства и свежесть",
+    "longDescription": "Компактная шкала одной задачи и таблица нескольких. Разделяет принятую оценку checklist, визуальную оценку и неизвестное. Работает локально без сети и записей в Planner.",
+    "developerName": "Локальный пакет",
+    "category": "Productivity",
+    "capabilities": ["Read"],
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/progress.svg",
+    "logo": "./assets/progress.svg",
+    "defaultPrompt": [
+      "Покажи примерный прогресс выбранной задачи с источником и свежестью",
+      "Покажи прогресс нескольких задач из явно указанного safe JSON"
+    ]
+  }
+}
