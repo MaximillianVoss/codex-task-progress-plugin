@@ -119,14 +119,15 @@ const STYLE = `
 #${ROOT} .tp-control-group{display:grid;gap:7px;min-width:0}
 #${ROOT} .tp-control-title{color:var(--tp-muted);font-size:11px;font-weight:650;letter-spacing:.035em}
 #${ROOT} .tp-choice-group{display:flex;flex-wrap:wrap;gap:5px}
-#${ROOT} .tp-choice,#${ROOT} .tp-theme-choice{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:6px 11px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-bg);color:var(--tp-muted);font:600 12px/1.3 "Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#${ROOT} .tp-choice,#${ROOT} .tp-theme-choice{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:6px 10px;border:1px solid var(--tp-line);border-radius:10px;background:var(--tp-bg);color:var(--tp-muted);font:600 12px/1.3 "Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 #${ROOT} .tp-choice:hover,#${ROOT} .tp-theme-choice:hover{border-color:var(--tp-accent);color:var(--tp-text)}
 #${ROOT} .tp-choice[aria-pressed="true"],#${ROOT} .tp-theme-choice[aria-pressed="true"]{border-color:var(--tp-accent);background:var(--tp-bg);color:var(--tp-text);box-shadow:inset 0 0 0 1px var(--tp-accent)}
-#${ROOT} .tp-theme-swatch{display:inline-block;flex:none;width:15px;height:15px;border:1px solid rgba(125,139,153,.58);border-radius:50%}
-#${ROOT} .tp-theme-swatch[data-swatch="night"]{background:#1b2229;box-shadow:inset 0 0 0 4px #36d2ed}
-#${ROOT} .tp-theme-swatch[data-swatch="light"]{background:#fffdf9;box-shadow:inset 0 0 0 4px #007a91}
-#${ROOT} .tp-theme-swatch[data-swatch="indigo"]{background:#19172a;box-shadow:inset 0 0 0 4px #b19aff}
-#${ROOT} .tp-theme-swatch[data-swatch="forest"]{background:#13241e;box-shadow:inset 0 0 0 4px #72d7a0}
+#${ROOT} .tp-icon-badge{display:inline-flex;align-items:center;justify-content:center;flex:none;width:25px;height:25px;border-radius:7px;background:var(--tp-panel);color:var(--tp-accent)}
+#${ROOT} .tp-control-icon{display:block;width:18px;height:18px}
+#${ROOT} .tp-icon-badge[data-icon="night"]{background:#153d49;color:#68ddef}
+#${ROOT} .tp-icon-badge[data-icon="light"]{background:#fff0c9;color:#946000}
+#${ROOT} .tp-icon-badge[data-icon="indigo"]{background:#30254f;color:#c4aeff}
+#${ROOT} .tp-icon-badge[data-icon="forest"]{background:#1d4230;color:#83e5ac}
 #${ROOT} .tp-stage-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 11px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-bg);color:var(--tp-text);font-size:12px;font-weight:600;cursor:pointer}
 #${ROOT}[data-show-stages="true"] .tp-stage-toggle{border-color:var(--tp-accent)}
 #${ROOT} .tp-stage-toggle input{width:16px;height:16px;margin:0;accent-color:var(--tp-accent);cursor:pointer}
@@ -283,10 +284,21 @@ const SCRIPT = `
   });
 })();
 `;
+const CONTROL_ICONS = {
+  bar: '<path d="M4 7h16M4 12h16M4 17h16" opacity=".35"/><path d="M4 7h9M4 12h13M4 17h6"/>',
+  ring: '<circle cx="12" cy="12" r="8" opacity=".35"/><path d="M12 4a8 8 0 1 1-7.73 10.07"/>',
+  night: '<path d="M19.2 15.7A8.2 8.2 0 0 1 8.3 4.8 8.2 8.2 0 1 0 19.2 15.7Z"/><path d="M18 3v4m-2-2h4"/>',
+  light: '<circle cx="12" cy="12" r="3.4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>',
+  indigo: '<path d="m12 2 1.9 7.1L21 11l-7.1 1.9L12 20l-1.9-7.1L3 11l7.1-1.9L12 2Z"/><path d="M19 17v4m-2-2h4"/>',
+  forest: '<path d="M20 4c-7 0-13 2.1-14.8 7.3C3.8 15.5 6.3 19 10.4 19 17 19 20 11 20 4Z"/><path d="M5 20c3-4 6-6 11-9"/>'
+};
+function controlIcon(value) {
+  return `<span class="tp-icon-badge" data-icon="${value}" aria-hidden="true"><svg class="tp-control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${CONTROL_ICONS[value]}</svg></span>`;
+}
 function renderControls(view, theme, stages) {
   const views = [['bar', 'Полоса'], ['ring', 'Круг']];
   const themes = [['night', 'Ночная'], ['light', 'Светлая'], ['indigo', 'Индиго'], ['forest', 'Лесная']];
-  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${label}</button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}"><span class="tp-theme-swatch" data-swatch="${value}" aria-hidden="true"></span><span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
+  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
 }
 
 // An offline fragment. Report computation belongs to core.mjs; the only script

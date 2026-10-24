@@ -2,13 +2,13 @@
 
 Skill-плагин показывает одну задачу компактной шкалой, несколько — таблицей. Результат включает точную область, примерно оценённый процент/диапазон, принятую оценку checklist, стадию, evidence, препятствия и свежесть. Unknown остаётся неизвестным; общий процент требует явного состава и весов. Работа или потраченное время сами по себе не добавляют проценты.
 
-Текущая версия распространения: **1.3.0**, закреплённый ref **v1.3.0**. Доступны полоса и круговой прогресс, четыре выбираемые темы и этапы. Примерную оценку можно подготовить по явному плану и подтверждённым шагам. [Репозиторий публичный](https://github.com/MaximillianVoss/codex-task-progress-plugin); для чтения и установки достаточно HTTPS.
+Текущая версия распространения: **1.3.1**, закреплённый ref **v1.3.1**. Доступны полоса и круговой прогресс, четыре выбираемые темы и этапы. Кнопки вида и тем имеют собственные значки; подписи остаются видимыми. Примерную оценку можно подготовить по явному плану и подтверждённым шагам. [Репозиторий публичный](https://github.com/MaximillianVoss/codex-task-progress-plugin); для чтения и установки достаточно HTTPS.
 
 В Codex с поддержкой inline-визуализации skill показывает графический результат; текстовый Markdown остаётся запасным вариантом и форматом CLI по умолчанию. Он не создаёт закреплённый нативный виджет, фоновые опросы, API-вызовы или записи в Planner. Нужен Node.js20+, установка npm-зависимостей не требуется.
 
 ## Если плагин уже подключён
 
-Используйте доступный `$task-progress:task-progress` (либо `$task-progress`, если клиент показывает короткое имя). Не устанавливайте второй экземпляр ради нового чата. Для подготовки оценки из плана по обновлённой инструкции нужна версия 1.3.0. При обновлении проверьте существующий источник marketplace, версию и enabled только этого плагина.
+Используйте доступный `$task-progress:task-progress` (либо `$task-progress`, если клиент показывает короткое имя). Не устанавливайте второй экземпляр ради нового чата. Для подготовки оценки из плана по обновлённой инструкции нужна версия не ниже 1.3.0. При обновлении проверьте существующий источник marketplace, версию и enabled только этого плагина.
 
 Пример рабочего запроса: «Покажи примерный прогресс task TASK_ID из явно указанного файла `progress.safe.json`, сохрани источник и unknown». Для нескольких задач указать project/portfolio ID либо точные taskId. Данные должны отвечать [контракту](plugins/task-progress/skills/task-progress/references/contract.md). Если готовой оценки нет, но у задачи есть явный план и подтверждения выполненных шагов, агент сначала готовит отдельный безопасный снимок с примерной оценкой по этапам. Равные веса без весов в плане называют оценочным допущением; уже принятый checklist не заменяют.
 
@@ -20,8 +20,8 @@ Skill-плагин показывает одну задачу компактно
 
 ```powershell
 # Выберите свободную постоянную папку на X, вне OneDrive.
-wsl -d Ubuntu-22.04 --exec git clone --branch v1.3.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin-install-v1.3.0
-codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin-install-v1.3.0' --json
+wsl -d Ubuntu-22.04 --exec git clone --branch v1.3.1 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin-install-v1.3.1
+codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin-install-v1.3.1' --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
 ```
@@ -29,7 +29,7 @@ codex plugin list --marketplace task-progress-local --json
 В новой Linux/macOS-среде:
 
 ```sh
-git clone --branch v1.3.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
+git clone --branch v1.3.1 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
 codex plugin marketplace add ./codex-task-progress-plugin --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
@@ -53,7 +53,7 @@ npm run example
 pwsh -File scripts/Build-Release.ps1
 ```
 
-Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и оба вывода renderer с исходниками. Результат — `dist/task-progress-1.3.0-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
+Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и оба вывода renderer с исходниками. Результат — `dist/task-progress-1.3.1-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
 
 Для отдельной демонстрации:
 

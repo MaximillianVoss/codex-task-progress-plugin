@@ -165,18 +165,33 @@ test('ring uses quantitative SVG circles for exact 28 and a separate 50–70 arc
   const staleHtml = renderHtml(reportOf(stale), { view: 'ring' });
   assert.match(staleHtml, /Неизвестно/);
   assert.match(staleHtml, /Последняя оценка: ≈ 28%/);
-  assert.doesNotMatch(staleHtml, /role="progressbar"|<circle\b|data-progress-graphic="ring"/);
+  assert.doesNotMatch(staleHtml, /role="progressbar"|data-progress-graphic="ring"|<circle class="tp-ring-track"/);
 });
 
 test('view, four complete themes and the stages toggle are explicit validated UI preferences', () => {
   const report = reportOf(snapshot());
   const initial = renderHtml(report);
   assert.match(initial, /data-view="bar" data-theme="night" data-show-stages="true"/);
-  assert.match(initial, /data-pref="view" data-value="bar" aria-pressed="true">Полоса<\/button>/);
-  assert.match(initial, /data-pref="view" data-value="ring" aria-pressed="false">Круг<\/button>/);
+  const controls = [...initial.matchAll(/<button type="button" class="tp-(?:theme-)?choice"[^>]*>[\s\S]*?<\/button>/g)].map(match => match[0]);
+  assert.equal(controls.length, 6);
+  const iconMarkup = new Set();
+  for (const [preference, value, label] of [
+    ['view', 'bar', 'Полоса'], ['view', 'ring', 'Круг'],
+    ['theme', 'night', 'Ночная'], ['theme', 'light', 'Светлая'],
+    ['theme', 'indigo', 'Индиго'], ['theme', 'forest', 'Лесная']
+  ]) {
+    const button = controls.find(control => control.includes(`data-pref="${preference}" data-value="${value}"`));
+    assert.ok(button, `${preference}:${value}`);
+    assert.match(button, new RegExp(`data-icon="${value}" aria-hidden="true"><svg class="tp-control-icon"`));
+    assert.match(button, /<svg[^>]*focusable="false">[\s\S]*?<\/svg>/);
+    assert.ok(button.includes(`<span>${label}</span>`));
+    iconMarkup.add(button.match(/<svg[^>]*>[\s\S]*?<\/svg>/)[0]);
+  }
+  assert.equal(iconMarkup.size, 6);
+  assert.match(controls[0], /aria-pressed="true"/);
+  assert.match(controls[1], /aria-pressed="false"/);
   assert.equal((initial.match(/class="tp-theme-choice"/g) ?? []).length, 4);
   assert.match(initial, /data-pref="theme" data-value="night" aria-pressed="true"/);
-  assert.match(initial, /class="tp-theme-swatch" data-swatch="night" aria-hidden="true"/);
   assert.match(initial, /type="checkbox" data-pref="stages" checked/);
   for (const theme of ['night', 'light', 'indigo', 'forest']) {
     const html = renderHtml(report, { theme, stages: false });
@@ -308,8 +323,8 @@ test('static controls change only UI preferences; host restores do not save and 
   assert.equal(viewChoices[1].attributes['aria-pressed'], 'true');
   assert.equal(themeChoices[1].attributes['aria-pressed'], 'true');
   assert.equal(stages.checked, false); assert.equal(saves.length, 0);
-  const swatch = { parentElement: themeChoices[3], getAttribute: () => null };
-  listeners.get('click')({ target: swatch });
+  const nestedIcon = button => ({ parentElement: { parentElement: { parentElement: button, getAttribute: () => null }, getAttribute: () => null }, getAttribute: () => null });
+  listeners.get('click')({ target: nestedIcon(themeChoices[3]) });
   assert.equal(dataset.theme, 'forest'); assert.equal(saves.length, 1);
   assert.equal(themeChoices[3].attributes['aria-pressed'], 'true');
   assert.equal(themeChoices[1].attributes['aria-pressed'], 'false');
@@ -323,7 +338,7 @@ test('static controls change only UI preferences; host restores do not save and 
   listeners.get('click')({ target: {} });
   listeners.get('change')({ target: {} }); assert.equal(saves.length, 1);
   host.setWidgetState = () => { throw new Error('Disabled'); };
-  assert.doesNotThrow(() => listeners.get('click')({ target: viewChoices[1] }));
+  assert.doesNotThrow(() => listeners.get('click')({ target: nestedIcon(viewChoices[1]) }));
   assert.equal(dataset.view, 'ring');
   stages.checked = false; assert.doesNotThrow(() => listeners.get('change')({ target: stages }));
   assert.equal(dataset.showStages, 'false');
