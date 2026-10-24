@@ -192,7 +192,9 @@ test('view, four complete themes and the stages toggle are explicit validated UI
   assert.match(controls[1], /aria-pressed="false"/);
   assert.equal((initial.match(/class="tp-theme-choice"/g) ?? []).length, 4);
   assert.match(initial, /data-pref="theme" data-value="night" aria-pressed="true"/);
-  assert.match(initial, /type="checkbox" data-pref="stages" checked/);
+  assert.match(initial, /<label class="tp-stage-toggle"><input type="checkbox" role="switch" data-pref="stages" checked><span>Показывать этапы<\/span><\/label>/);
+  assert.match(initial, /\.tp-stage-toggle input:checked::before\{left:16px;background:var\(--tp-bg\)\}/);
+  assert.match(initial, /\.tp-stage-toggle input:focus-visible/);
   for (const theme of ['night', 'light', 'indigo', 'forest']) {
     const html = renderHtml(report, { theme, stages: false });
     assert.ok(html.includes(`data-theme="${theme}" data-show-stages="false"`));
@@ -203,6 +205,19 @@ test('view, four complete themes and the stages toggle are explicit validated UI
   assert.doesNotMatch(initial, /@import|url\s*\(|<link\b|\s(?:src|href)=["']/i);
   const script = initial.match(/<script>([\s\S]*?)<\/script>/)[1];
   assert.doesNotMatch(script, /fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|sendBeacon|document\.cookie|innerHTML|Planner|https?:/i);
+});
+
+test('single task omits the visible table header, ring is smaller and header reserves menu space', () => {
+  const single = htmlOf(snapshot());
+  const multiple = htmlOf(demo());
+  assert.match(single, /<div class="tp-column-head tp-column-head-single" role="row"><span role="columnheader">Задача<\/span><span role="columnheader">Прогресс<\/span><span role="columnheader">Состояние<\/span><\/div>/);
+  assert.match(single, /\.tp-column-head-single\{position:absolute;width:1px;height:1px;[^}]*clip-path:inset\(50%\)/);
+  assert.match(multiple, /<div class="tp-column-head" role="row"><span role="columnheader">Задача/);
+  assert.doesNotMatch(multiple, /class="tp-column-head tp-column-head-single"/);
+  assert.match(single, /\.tp-ring\{[^}]*width:124px;height:124px/);
+  assert.match(single, /\[data-view="ring"\] \.tp-task\{grid-template-columns:124px minmax\(0,1fr\)/);
+  assert.match(single, /\.tp-header\{[^}]*padding:24px 56px 20px 26px/);
+  assert.match(single, /@media\(max-width:600px\)\{[^}]*\.tp-header\{display:block;padding:20px 56px 16px 16px/);
 });
 
 test('stage panels preserve ordered source stages, evidence, all statuses and fixed checklist independence', () => {
@@ -216,11 +231,14 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   assert.match(html, /class="tp-stages-summary">1 из 7 принято/);
   assert.match(html, /Перечень для ориентира · не меняет процент/);
   assert.match(html, /<ol class="tp-stage-list">/);
-  assert.match(html, /class="tp-stage-top"/);
-  assert.match(html, /grid-template-columns:29px minmax\(0,1fr\)/);
+  assert.match(html, /<details class="tp-stage-disclosure"><summary class="tp-stage-row">/);
+  assert.match(html, /grid-template-columns:22px minmax\(0,1fr\) auto 9px/);
+  assert.match(html, /\.tp-stage-row\{[^}]*min-height:36px;padding:5px 2px/);
+  assert.match(html, /class="tp-stage-chevron" aria-hidden="true"/);
   for (const status of statuses) assert.ok(html.includes(`class="tp-stage-item" data-status="${status}"`));
-  for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</p>`));
+  for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</span>`));
   assert.ok(html.indexOf('class="tp-stage-label">Этап 0') < html.indexOf('class="tp-stage-label">Этап 6'));
+  assert.match(html, /<\/summary><div class="tp-stage-proof"><p>ID: s3\.<\/p><p>Evidence: test:stage-accepted<\/p><\/div><\/details>/);
   assert.match(html, /Evidence: test:stage-accepted/);
   assert.match(html, /test:display-stages — Источник списка/);
   assert.doesNotMatch(html, /Этапы по последнему снимку|[1-7]\s*\/\s*7|class="tp-percent">100%/);
@@ -234,9 +252,8 @@ test('stale stage acceptance is labeled historical and absent stages are never i
   assert.match(html, /tp-stages-stale/);
   assert.match(html, /Этапы по последнему снимку/);
   assert.match(html, /class="tp-stage-status">Принят по снимку/);
-  assert.match(html, /\.tp-stages-stale \.tp-stage-item\[data-status="accepted"\]\{border-left-color:var\(--tp-line\)\}/);
   assert.match(html, /\.tp-stages-stale \.tp-stage-item\[data-status="accepted"\] \.tp-stage-index\{border-color:var\(--tp-line\);color:var\(--tp-muted\)\}/);
-  assert.doesNotMatch(html, /class="tp-stage-status">Принят<\/p>/);
+  assert.doesNotMatch(html, /class="tp-stage-status">Принят<\/span>/);
   assert.match(htmlOf(snapshot()), /Этапы не переданы/);
   assert.doesNotMatch(htmlOf(snapshot()), /class="tp-stage-label">Подготовка/);
   const missingStages = snapshot([task('a', null)]); missingStages.tasks[0].dataStatus = 'unknown'; missingStages.tasks[0].updatedAt = null;

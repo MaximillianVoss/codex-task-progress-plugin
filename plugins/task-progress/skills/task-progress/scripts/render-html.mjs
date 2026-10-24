@@ -63,8 +63,8 @@ function renderStages(task) {
   const items = stages.length ? `<ol class="tp-stage-list">${stages.map((stage, index) => {
     const status = Object.hasOwn(STAGE_LABELS, stage.status) ? stage.status : 'unknown';
     const label = !fresh && status === 'accepted' ? 'Принят по снимку' : STAGE_LABELS[status];
-    const proof = `<details class="tp-details tp-stage-proof"><summary>Основание</summary><p>ID: ${text(stage.id)}.</p>${stage.evidence ? `<p>Evidence: ${text(stage.evidence)}</p>` : '<p>Evidence не передан.</p>'}${stage.weight !== undefined ? `<p>Вес источника: ${text(exact(stage.weight))}.</p>` : ''}</details>`;
-    return `<li class="tp-stage-item" data-status="${status}"><span class="tp-stage-index" aria-hidden="true">${index + 1}</span><div class="tp-stage-content"><div class="tp-stage-top"><p class="tp-stage-label">${text(stage.label)}</p><p class="tp-stage-status">${text(label)}</p></div>${proof}</div></li>`;
+    const proof = `<div class="tp-stage-proof"><p>ID: ${text(stage.id)}.</p>${stage.evidence ? `<p>Evidence: ${text(stage.evidence)}</p>` : '<p>Evidence не передан.</p>'}${stage.weight !== undefined ? `<p>Вес источника: ${text(exact(stage.weight))}.</p>` : ''}</div>`;
+    return `<li class="tp-stage-item" data-status="${status}"><details class="tp-stage-disclosure"><summary class="tp-stage-row"><span class="tp-stage-index" aria-hidden="true">${index + 1}</span><span class="tp-stage-label">${text(stage.label)}</span><span class="tp-stage-status">${text(label)}</span><span class="tp-stage-chevron" aria-hidden="true"></span></summary>${proof}</details></li>`;
   }).join('')}</ol>` : '<p class="tp-stage-empty">Этапы не переданы источником.</p>';
   return `<section class="tp-stages${fresh ? '' : ' tp-stages-stale'}" aria-label="Этапы задачи ${text(task.title)}"><div class="tp-stages-heading"><div><p class="tp-stages-kicker">Маршрут задачи</p><h4>${origin}</h4></div><p class="tp-stages-summary">${summary}</p></div>${relation ? `<p class="tp-stages-relation">${relation}</p>` : ''}${freshness}${items}${source}</section>`;
 }
@@ -108,7 +108,7 @@ const STYLE = `
 #${ROOT}[data-theme="forest"]{--tp-bg:#13241e;--tp-panel:#1a2e26;--tp-line:#3d594b;--tp-text:#effaf2;--tp-muted:#b2cabb;--tp-accent:#72d7a0;--tp-warning:#f3cf78;--tp-track:#375247;--tp-interval:#72d7a0;--tp-interval-alt:#3e7b5c;--tp-question:#5d7b6b;--tp-question-text:#f3faf5;--tp-accepted:#9be5b6;--tp-checking:#c2d9ff}
 #${ROOT} *,#${ROOT} *::before,#${ROOT} *::after{box-sizing:border-box;min-width:0}
 #${ROOT} p,#${ROOT} h2,#${ROOT} h3,#${ROOT} h4,#${ROOT} dl,#${ROOT} dd,#${ROOT} ul,#${ROOT} ol{margin:0}
-#${ROOT} .tp-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:24px 26px}
+#${ROOT} .tp-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:24px 56px 20px 26px}
 #${ROOT} .tp-kicker{margin-bottom:6px;color:var(--tp-muted);font-size:12px;font-weight:600;letter-spacing:.04em}
 #${ROOT} h2{font-size:24px;line-height:1.3;font-weight:650}
 #${ROOT} .tp-demo{margin-top:8px;color:var(--tp-muted);font-size:12px}
@@ -128,12 +128,15 @@ const STYLE = `
 #${ROOT} .tp-icon-badge[data-icon="light"]{background:#fff0c9;color:#946000}
 #${ROOT} .tp-icon-badge[data-icon="indigo"]{background:#30254f;color:#c4aeff}
 #${ROOT} .tp-icon-badge[data-icon="forest"]{background:#1d4230;color:#83e5ac}
-#${ROOT} .tp-stage-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 11px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-bg);color:var(--tp-text);font-size:12px;font-weight:600;cursor:pointer}
-#${ROOT}[data-show-stages="true"] .tp-stage-toggle{border-color:var(--tp-accent)}
-#${ROOT} .tp-stage-toggle input{width:16px;height:16px;margin:0;accent-color:var(--tp-accent);cursor:pointer}
+#${ROOT} .tp-stage-toggle{display:inline-flex;align-items:center;gap:9px;min-height:40px;padding:0 2px;color:var(--tp-text);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#${ROOT} .tp-stage-toggle input{appearance:none;position:relative;flex:none;width:34px;height:20px;margin:0;border:1px solid var(--tp-line);border-radius:999px;background:var(--tp-track);cursor:pointer}
+#${ROOT} .tp-stage-toggle input::before{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--tp-text)}
+#${ROOT} .tp-stage-toggle input:checked{border-color:var(--tp-accent);background:var(--tp-accent)}
+#${ROOT} .tp-stage-toggle input:checked::before{left:16px;background:var(--tp-bg)}
 #${ROOT} .tp-choice:focus-visible,#${ROOT} .tp-theme-choice:focus-visible,#${ROOT} .tp-stage-toggle input:focus-visible{outline:2px solid var(--tp-accent);outline-offset:3px}
 #${ROOT} .tp-column-head,#${ROOT} .tp-task{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.3fr) minmax(0,1fr);column-gap:26px;padding:18px 26px}
 #${ROOT} .tp-column-head{border-top:1px solid var(--tp-line);background:var(--tp-panel);color:var(--tp-muted);font-size:13px;font-weight:600}
+#${ROOT} .tp-column-head-single{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 #${ROOT} .tp-task{border-top:1px solid var(--tp-line);row-gap:12px;align-items:start;padding-top:16px;padding-bottom:4px}
 #${ROOT} .tp-details-row{padding:0 26px 8px}
 #${ROOT} .tp-task h3{font-size:17px;line-height:1.35;font-weight:650}
@@ -175,57 +178,56 @@ const STYLE = `
 #${ROOT} .tp-footer{padding:16px 26px;border-top:1px solid var(--tp-line);color:var(--tp-muted);font-size:11px}
 #${ROOT} .tp-footer p+p{margin-top:5px}
 #${ROOT} .tp-empty{padding:24px 26px;border-top:1px solid var(--tp-line);color:var(--tp-muted)}
-#${ROOT} .tp-ring{display:none;position:relative;width:160px;height:160px;max-width:100%;margin:auto}
+#${ROOT} .tp-ring{display:none;position:relative;width:124px;height:124px;max-width:100%;margin:auto}
 #${ROOT} .tp-ring svg{display:block;width:100%;height:100%}
 #${ROOT} .tp-ring circle{fill:none;stroke-width:8;stroke-linecap:butt}
 #${ROOT} .tp-ring-track{stroke:var(--tp-track)}
 #${ROOT} .tp-ring-fill{stroke:var(--tp-accent)}
 #${ROOT} .tp-ring-interval{stroke:var(--tp-interval);opacity:.45}
-#${ROOT} .tp-ring-value{position:absolute;inset:21%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:22px;line-height:1.25;font-weight:650;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-ring-value{position:absolute;inset:21%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;line-height:1.25;font-weight:650;font-variant-numeric:tabular-nums}
 #${ROOT}[data-view="ring"] .tp-column-head{display:none}
-#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:160px minmax(0,1fr);grid-template-areas:"ring name" "ring state";column-gap:24px;row-gap:10px;padding-top:20px;padding-bottom:12px}
+#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:124px minmax(0,1fr);grid-template-areas:"ring name" "ring state";column-gap:20px;row-gap:8px;padding-top:16px;padding-bottom:8px}
 #${ROOT}[data-view="ring"] .tp-task-name{grid-area:name}
 #${ROOT}[data-view="ring"] .tp-progress-cell{grid-area:ring}
 #${ROOT}[data-view="ring"] .tp-state{grid-area:state}
 #${ROOT}[data-view="ring"] .tp-meter-line{display:none}
 #${ROOT}[data-view="ring"] .tp-ring{display:block}
-#${ROOT} .tp-stages{margin-top:10px;padding:16px 18px;border:1px solid var(--tp-line);border-radius:11px;background:var(--tp-panel)}
-#${ROOT} .tp-stages-heading{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:6px 14px}
-#${ROOT} .tp-stages-kicker{color:var(--tp-muted);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
-#${ROOT} .tp-stages h4{font-size:16px;font-weight:650;line-height:1.3}
-#${ROOT} .tp-stages-summary{color:var(--tp-muted);font-size:12px;font-variant-numeric:tabular-nums}
-#${ROOT} .tp-stages-relation{margin-top:4px;color:var(--tp-muted);font-size:11px}
-#${ROOT} .tp-stage-freshness{margin-top:5px;font-size:11px}
-#${ROOT} .tp-stage-empty{margin-top:12px;color:var(--tp-muted);font-size:12px}
-#${ROOT} .tp-stage-list{display:grid;gap:0;list-style:none;padding:0;margin-top:14px;border:1px solid var(--tp-line);border-radius:9px;overflow:hidden;background:var(--tp-bg)}
-#${ROOT} .tp-stage-item{display:grid;grid-template-columns:29px minmax(0,1fr);align-items:start;gap:11px;padding:12px 14px;border-left:3px solid transparent}
-#${ROOT} .tp-stage-item+.tp-stage-item{border-top:1px solid var(--tp-line)}
-#${ROOT} .tp-stage-item[data-status="accepted"]{border-left-color:var(--tp-accepted)}
-#${ROOT} .tp-stage-item[data-status="checking"]{border-left-color:var(--tp-checking)}
-#${ROOT} .tp-stage-item[data-status="working"]{border-left-color:var(--tp-accent)}
-#${ROOT} .tp-stage-item[data-status="blocked"],#${ROOT} .tp-stage-item[data-status="paused"]{border-left-color:var(--tp-warning)}
-#${ROOT} .tp-stage-index{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:1px solid var(--tp-line);border-radius:50%;color:var(--tp-muted);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-stages{margin-top:8px;padding:9px 0 0;border-top:1px solid var(--tp-line)}
+#${ROOT} .tp-stages-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+#${ROOT} .tp-stages-kicker{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#${ROOT} .tp-stages h4{font-size:14px;font-weight:650;line-height:1.3}
+#${ROOT} .tp-stages-summary{color:var(--tp-muted);font-size:11px;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-stages-relation{margin-top:2px;color:var(--tp-muted);font-size:10px}
+#${ROOT} .tp-stage-freshness{margin-top:3px;font-size:10px}
+#${ROOT} .tp-stage-empty{margin-top:7px;color:var(--tp-muted);font-size:12px}
+#${ROOT} .tp-stage-list{display:grid;gap:0;list-style:none;padding:0;margin-top:7px;border-top:1px solid var(--tp-line)}
+#${ROOT} .tp-stage-item{border-bottom:1px solid var(--tp-line)}
+#${ROOT} .tp-stage-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto 9px;align-items:center;gap:9px;min-height:36px;padding:5px 2px;cursor:pointer;list-style:none}
+#${ROOT} .tp-stage-row::-webkit-details-marker{display:none}
+#${ROOT} .tp-stage-row:focus-visible{outline:2px solid var(--tp-accent);outline-offset:-2px;border-radius:4px}
+#${ROOT} .tp-stage-row:hover{background:var(--tp-panel)}
+#${ROOT} .tp-stage-index{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--tp-line);border-radius:50%;color:var(--tp-muted);font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
 #${ROOT} .tp-stage-item[data-status="accepted"] .tp-stage-index{border-color:var(--tp-accepted);color:var(--tp-accepted)}
 #${ROOT} .tp-stage-item[data-status="checking"] .tp-stage-index{border-color:var(--tp-checking);color:var(--tp-checking)}
 #${ROOT} .tp-stage-item[data-status="working"] .tp-stage-index{border-color:var(--tp-accent);color:var(--tp-accent)}
 #${ROOT} .tp-stage-item[data-status="blocked"] .tp-stage-index,#${ROOT} .tp-stage-item[data-status="paused"] .tp-stage-index{border-color:var(--tp-warning);color:var(--tp-warning)}
-#${ROOT} .tp-stage-content{min-width:0}
-#${ROOT} .tp-stage-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px 12px}
-#${ROOT} .tp-stage-label{font-size:13px;font-weight:650;line-height:1.4}
-#${ROOT} .tp-stage-status{flex:none;padding:2px 8px;border:1px solid currentColor;border-radius:999px;color:var(--tp-muted);font-size:11px;font-weight:600;line-height:1.4}
+#${ROOT} .tp-stage-label{min-width:0;font-size:12px;font-weight:650;line-height:1.35}
+#${ROOT} .tp-stage-status{padding:1px 7px;border:1px solid currentColor;border-radius:999px;color:var(--tp-muted);font-size:10px;font-weight:600;line-height:1.3;white-space:nowrap}
+#${ROOT} .tp-stage-chevron{width:7px;height:7px;border-right:1.5px solid var(--tp-muted);border-bottom:1.5px solid var(--tp-muted);transform:rotate(45deg);transition:transform .15s ease}
+#${ROOT} .tp-stage-disclosure[open] .tp-stage-chevron{transform:rotate(225deg)}
 #${ROOT} .tp-stage-item[data-status="accepted"] .tp-stage-status{color:var(--tp-accepted)}
 #${ROOT} .tp-stage-item[data-status="checking"] .tp-stage-status{color:var(--tp-checking)}
 #${ROOT} .tp-stage-item[data-status="working"] .tp-stage-status{color:var(--tp-accent)}
 #${ROOT} .tp-stage-item[data-status="blocked"] .tp-stage-status,#${ROOT} .tp-stage-item[data-status="paused"] .tp-stage-status{color:var(--tp-warning)}
-#${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"]{border-left-color:var(--tp-line)}
 #${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"] .tp-stage-index{border-color:var(--tp-line);color:var(--tp-muted)}
 #${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"] .tp-stage-status{color:var(--tp-muted)}
-#${ROOT} .tp-stage-proof{margin-top:3px;font-size:11px}
+#${ROOT} .tp-stage-proof{padding:1px 8px 9px 33px;color:var(--tp-muted);font-size:11px}
 #${ROOT} .tp-stage-proof p+p{margin-top:4px}
-#${ROOT} .tp-stage-source{margin-top:8px;font-size:11px}
+#${ROOT} .tp-stage-source{margin-top:6px;font-size:11px}
 #${ROOT}[data-show-stages="false"] .tp-stages{display:none}
-@media(max-width:600px){#${ROOT} .tp-header{display:block;padding:20px 16px}#${ROOT} h2{font-size:21px}#${ROOT} .tp-meta{margin-top:12px;text-align:left}#${ROOT} .tp-selected{padding:0 16px 16px}#${ROOT} .tp-column-head{display:none}#${ROOT} .tp-task{grid-template-columns:minmax(0,1fr);gap:14px;padding:20px 16px 8px}#${ROOT} .tp-details-row{padding:0 16px 8px}#${ROOT} .tp-progress-cell{width:100%}#${ROOT} .tp-meter-line{gap:10px}#${ROOT} .tp-state{padding-top:2px}#${ROOT} .tp-details dl{grid-template-columns:minmax(0,1fr);gap:4px}#${ROOT} .tp-details dd+dt{margin-top:8px}#${ROOT} .tp-total{padding:20px 16px}#${ROOT} .tp-total h3{font-size:20px}#${ROOT} .tp-warnings{padding:14px 16px}#${ROOT} .tp-footer{padding:16px}#${ROOT} .tp-empty{padding:20px 16px}}
-@media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT} .tp-theme-choice{min-width:calc(50% - 3px)}#${ROOT} .tp-stages{padding:14px}#${ROOT} .tp-stage-item{padding:11px}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
+@media(prefers-reduced-motion:reduce){#${ROOT} .tp-stage-chevron{transition:none}}
+@media(max-width:600px){#${ROOT} .tp-header{display:block;padding:20px 56px 16px 16px}#${ROOT} h2{font-size:21px}#${ROOT} .tp-meta{margin-top:12px;text-align:left}#${ROOT} .tp-selected{padding:0 16px 16px}#${ROOT} .tp-column-head{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}#${ROOT} .tp-task{grid-template-columns:minmax(0,1fr);gap:14px;padding:20px 16px 8px}#${ROOT} .tp-details-row{padding:0 16px 8px}#${ROOT} .tp-progress-cell{width:100%}#${ROOT} .tp-meter-line{gap:10px}#${ROOT} .tp-state{padding-top:2px}#${ROOT} .tp-details dl{grid-template-columns:minmax(0,1fr);gap:4px}#${ROOT} .tp-details dd+dt{margin-top:8px}#${ROOT} .tp-total{padding:20px 16px}#${ROOT} .tp-total h3{font-size:20px}#${ROOT} .tp-warnings{padding:14px 16px}#${ROOT} .tp-footer{padding:16px}#${ROOT} .tp-empty{padding:20px 16px}}
+@media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT} .tp-theme-choice{min-width:calc(50% - 3px)}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
 `;
 
 // This constant never contains snapshot strings. It only changes presentation
@@ -298,7 +300,7 @@ function controlIcon(value) {
 function renderControls(view, theme, stages) {
   const views = [['bar', 'Полоса'], ['ring', 'Круг']];
   const themes = [['night', 'Ночная'], ['light', 'Светлая'], ['indigo', 'Индиго'], ['forest', 'Лесная']];
-  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
+  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" role="switch" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
 }
 
 // An offline fragment. Report computation belongs to core.mjs; the only script
@@ -313,7 +315,7 @@ export function renderHtml(report, options = {}) {
   if (typeof stages !== 'boolean') throw new TypeError('HTML stages: требуется boolean');
   const heading = `Прогресс · ${SCOPE_LABELS[report.selection.kind] ?? report.selection.kind} ${report.selection.id}`;
   const selected = report.selection.kind === 'tasks' ? `<p class="tp-selected">Выбраны задачи: ${report.selection.taskIds.map(text).join(', ')}.</p>` : '';
-  const rows = report.tasks.length ? `<div class="tp-table" role="table" aria-label="Прогресс выбранных задач"><div class="tp-column-head" role="row"><span role="columnheader">Задача</span><span role="columnheader">Прогресс</span><span role="columnheader">Состояние</span></div>${report.tasks.map(renderTask).join('')}</div>` : '<p class="tp-empty">Нет переданных задач. Прогресс неизвестен.</p>';
+  const rows = report.tasks.length ? `<div class="tp-table" role="table" aria-label="Прогресс выбранных задач"><div class="tp-column-head${report.tasks.length === 1 ? ' tp-column-head-single' : ''}" role="row"><span role="columnheader">Задача</span><span role="columnheader">Прогресс</span><span role="columnheader">Состояние</span></div>${report.tasks.map(renderTask).join('')}</div>` : '<p class="tp-empty">Нет переданных задач. Прогресс неизвестен.</p>';
   const warnings = report.warnings.length ? `<section class="tp-warnings" aria-label="Предупреждения области"><ul>${report.warnings.map(warning => `<li>⚠ ${text(warning)}</li>`).join('')}</ul></section>` : '';
   const refs = [...new Set(report.tasks.filter(task => task.source).map(task => task.source.ref))];
   return `<section id="${ROOT}" data-task-progress data-view="${view}" data-theme="${theme}" data-show-stages="${stages}" lang="ru" aria-label="${text(heading)}"><style>${STYLE}</style><header class="tp-header"><div><p class="tp-kicker">Пульт задач</p><h2>${text(heading)}</h2>${report.demo ? '<p class="tp-demo">Демонстрация · синтетические данные, не текущий прогресс рабочих проектов.</p>' : ''}</div><p class="tp-meta"><span>Показ: ${text(report.renderedAt)}</span><span>Порог свежести: ${text(report.staleAfterMinutes)} мин.</span></p></header>${renderControls(view, theme, stages)}${selected}${rows}${renderAggregate(report.aggregate)}${warnings}<footer class="tp-footer"><p>Источники: ${refs.length ? refs.map(text).join(' · ') : 'не переданы'}. Полные evidence — в подробностях задач.</p><p>Оценка относится только к выбранной области и времени. Evidence переданы источником; renderer их внешне не проверяет.</p></footer><script>${SCRIPT}</script></section>\n`;
