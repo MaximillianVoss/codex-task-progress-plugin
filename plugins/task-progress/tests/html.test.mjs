@@ -186,27 +186,73 @@ test('view, four complete themes and the stages toggle are explicit validated UI
     assert.ok(button, `${preference}:${value}`);
     assert.match(button, new RegExp(`data-icon="${value}" aria-hidden="true"><svg class="tp-control-icon"`));
     assert.match(button, /<svg[^>]*focusable="false">[\s\S]*?<\/svg>/);
-    assert.ok(button.includes(`<span>${label}</span>`));
+    if (preference === 'view') assert.ok(button.includes(`<span>${label}</span>`));
+    else {
+      assert.ok(button.includes(`aria-label="${label} тема" title="${label} тема"`));
+      assert.ok(!button.includes(`<span>${label}</span>`));
+    }
     iconMarkup.add(button.match(/<svg[^>]*>[\s\S]*?<\/svg>/)[0]);
   }
   assert.equal(iconMarkup.size, 6);
   assert.match(controls[0], /aria-pressed="true"/);
   assert.match(controls[1], /aria-pressed="false"/);
   assert.equal((initial.match(/class="tp-theme-choice"/g) ?? []).length, 4);
-  assert.match(initial, /data-pref="theme" data-value="night" aria-pressed="true"/);
+  assert.match(initial, /data-pref="theme" data-value="night" aria-label="Ночная тема" title="Ночная тема" aria-pressed="true"/);
+  assert.match(initial, /\.tp-theme-choice\{width:42px;height:42px;min-width:42px;min-height:42px;padding:0;border-radius:50%/);
+  assert.match(initial, /\.tp-theme-choice \.tp-icon-badge\{width:30px;height:30px;border-radius:50%/);
+  assert.doesNotMatch(initial, /\.tp-theme-choice\{min-width:calc\(50%/);
   assert.match(initial, /<label class="tp-stage-toggle"><input type="checkbox" role="switch" data-pref="stages" checked><span>Показывать этапы<\/span><\/label>/);
   assert.match(initial, /\.tp-stage-toggle input:checked::before\{left:16px;background:var\(--tp-bg\)\}/);
   assert.match(initial, /\.tp-stage-toggle input:focus-visible/);
   for (const theme of ['night', 'light', 'indigo', 'forest']) {
     const html = renderHtml(report, { theme, stages: false });
     assert.ok(html.includes(`data-theme="${theme}" data-show-stages="false"`));
-    assert.ok(html.includes(`data-pref="theme" data-value="${theme}" aria-pressed="true"`));
+    assert.match(html, new RegExp(`data-pref="theme" data-value="${theme}"[^>]*aria-pressed="true"`));
     assert.doesNotMatch(html, /data-pref="stages" checked/);
   }
   for (const options of [{ view: 'pie' }, { view: null }, { theme: 'system' }, { theme: '"><script>' }, { stages: 'false' }, { arbitrary: true }, null, []]) assert.throws(() => renderHtml(report, options), TypeError);
   assert.doesNotMatch(initial, /@import|url\s*\(|<link\b|\s(?:src|href)=["']/i);
   const script = initial.match(/<script>([\s\S]*?)<\/script>/)[1];
   assert.doesNotMatch(script, /fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|sendBeacon|document\.cookie|innerHTML|Planner|https?:/i);
+});
+
+test('appearance settings are a closed native disclosure inside the expanded dashboard', () => {
+  const html = renderHtml(reportOf(plan()), { view: 'ring', theme: 'forest', stages: false });
+  const dashboardSummary = html.indexOf('<summary class="tp-compact-summary">');
+  const headerEnd = html.indexOf('</header>');
+  const settingsStart = html.indexOf('<details class="tp-settings">');
+  const settingsEnd = html.indexOf('</details>', settingsStart);
+  const settings = html.slice(settingsStart, settingsEnd + '</details>'.length);
+  assert.ok(dashboardSummary > 0 && dashboardSummary < headerEnd && headerEnd < settingsStart);
+  assert.match(settings, /^<details class="tp-settings"><summary class="tp-settings-summary">/);
+  assert.match(settings, /<svg class="tp-settings-icon"[^>]*aria-hidden="true" focusable="false">/);
+  assert.match(settings, /<span>Настройки отображения<\/span><span class="tp-settings-chevron" aria-hidden="true"><\/span><\/summary><div class="tp-controls" role="group"/);
+  assert.doesNotMatch(settings, /<details class="tp-settings" open|<script\b|\s(?:src|href|onclick)=/i);
+  assert.match(settings, /data-pref="view" data-value="ring" aria-pressed="true"/);
+  assert.match(settings, /data-pref="theme" data-value="forest" aria-label="Лесная тема" title="Лесная тема" aria-pressed="true"/);
+  assert.match(settings, /<input type="checkbox" role="switch" data-pref="stages">/);
+  assert.match(html, /\.tp-settings-summary:focus-visible\{outline:2px solid var\(--tp-accent\);outline-offset:3px\}/);
+  assert.match(html, /@container \(max-width:460px\)\{#task-progress-dashboard \.tp-settings\{padding:0 12px 10px\}/);
+  const multiple = htmlOf(demo());
+  assert.match(multiple, /<details class="tp-dashboard-disclosure" open>/);
+  assert.match(multiple, /<details class="tp-settings"><summary class="tp-settings-summary">/);
+});
+
+test('native disclosures animate only with supported CSS and honor reduced motion', () => {
+  const html = htmlOf(plan());
+  const styles = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+  assert.match(styles, /@supports selector\(::details-content\) and \(interpolate-size:allow-keywords\)\{/);
+  assert.match(styles, /interpolate-size:allow-keywords/);
+  for (const kind of ['tp-dashboard-disclosure', 'tp-settings', 'tp-stage-disclosure', 'tp-details']) {
+    assert.ok(styles.includes(`.${kind}::details-content`));
+    assert.ok(styles.includes(`.${kind}[open]::details-content`));
+  }
+  assert.match(styles, /height:0;overflow:clip;transition:height \.28s ease,content-visibility \.28s ease allow-discrete/);
+  assert.match(styles, /\.tp-details\[open\]::details-content\{height:auto\}/);
+  assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{[^}]*::details-content\{transition:none\}/);
+  assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{[^}]*\.tp-compact-chevron,[^}]*\.tp-theme-choice\{transition:none\}/);
+  assert.doesNotMatch(styles, /max-height:\d+px|overflow-y:scroll/);
+  assert.equal((html.match(/<script>/g) ?? []).length, 1);
 });
 
 test('single task omits the visible table header, ring is smaller and header reserves menu space', () => {
@@ -248,7 +294,7 @@ test('compact card adapts to its own narrow width and keeps stage count and disc
   assert.match(html, /container-type:inline-size/);
   assert.match(html, /@container \(max-width:460px\)\{[^}]*grid-template-areas:"ring main" "ring action"/);
   assert.match(html, /@container \(max-width:460px\)\{[^}]*\.tp-compact-summary\{[^}]*grid-template-areas:"ring main" "ring action"/);
-  assert.match(html, /\.tp-compact-action\{grid-area:action;justify-self:start/);
+  assert.match(html, /\.tp-compact-action\{grid-area:action;justify-self:end/);
   assert.match(html, /\.tp-compact-stage-caption,#task-progress-dashboard \.tp-compact-stages-off\{[^}]*white-space:normal/);
   assert.match(html, /\.tp-compact-stage-wrap\{[^}]*flex-wrap:wrap/);
   assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:wrap/);

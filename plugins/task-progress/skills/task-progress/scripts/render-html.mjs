@@ -136,12 +136,12 @@ const STYLE = `
 #${ROOT} .tp-compact-stage-node[data-status="checking"] .tp-compact-stage-dot{border-color:var(--tp-checking);color:var(--tp-checking)}
 #${ROOT} .tp-compact-stage-node[data-status="blocked"] .tp-compact-stage-dot,#${ROOT} .tp-compact-stage-node[data-status="paused"] .tp-compact-stage-dot{border-color:var(--tp-warning);color:var(--tp-warning)}
 #${ROOT} .tp-compact-stage-list.tp-compact-stale .tp-compact-stage-node .tp-compact-stage-dot{border-color:var(--tp-line);color:var(--tp-muted)}
-#${ROOT} .tp-compact-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:5px 9px;border:1px solid var(--tp-line);border-radius:8px;color:var(--tp-text);font-size:11px;font-weight:650;white-space:nowrap}
+#${ROOT} .tp-compact-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:5px 9px;border:1px solid var(--tp-line);border-radius:8px;color:var(--tp-text);font-size:11px;font-weight:650;white-space:nowrap;transition:border-color .18s ease,color .18s ease}
 #${ROOT} .tp-dashboard-disclosure>summary:hover .tp-compact-action{border-color:var(--tp-accent)}
 #${ROOT} .tp-action-close{display:none}
 #${ROOT} .tp-dashboard-disclosure[open] .tp-action-open{display:none}
 #${ROOT} .tp-dashboard-disclosure[open] .tp-action-close{display:inline}
-#${ROOT} .tp-compact-chevron{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+#${ROOT} .tp-compact-chevron{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);transition:transform .24s ease}
 #${ROOT} .tp-dashboard-disclosure[open] .tp-compact-chevron{transform:rotate(225deg)}
 #${ROOT} .tp-wide-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:7px 56px 7px 16px;color:var(--tp-muted);font-size:12px}
 #${ROOT} .tp-expanded{border-top:1px solid var(--tp-line)}
@@ -152,11 +152,23 @@ const STYLE = `
 #${ROOT} .tp-meta{flex:0 1 240px;color:var(--tp-muted);font-size:11px;text-align:right}
 #${ROOT} .tp-meta span{display:block}
 #${ROOT} .tp-selected{padding:0 26px 18px;color:var(--tp-muted);font-size:12px}
+#${ROOT} .tp-settings{padding:0 26px 12px}
+#${ROOT} .tp-settings-summary{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:5px 10px;border:1px solid var(--tp-line);border-radius:9px;background:var(--tp-panel);color:var(--tp-text);font-size:12px;font-weight:650;list-style:none;cursor:pointer;transition:border-color .18s ease}
+#${ROOT} .tp-settings-summary::-webkit-details-marker{display:none}
+#${ROOT} .tp-settings-summary:hover{border-color:var(--tp-accent)}
+#${ROOT} .tp-settings-summary:focus-visible{outline:2px solid var(--tp-accent);outline-offset:3px}
+#${ROOT} .tp-settings-icon{display:block;flex:none;width:17px;height:17px;color:var(--tp-accent)}
+#${ROOT} .tp-settings-chevron{display:block;flex:none;width:7px;height:7px;margin-left:2px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);transition:transform .24s ease}
+#${ROOT} .tp-settings[open] .tp-settings-chevron{transform:rotate(225deg)}
+#${ROOT} .tp-settings .tp-controls{margin-top:8px;padding:12px 14px;border:1px solid var(--tp-line);border-radius:9px}
 #${ROOT} .tp-controls{display:flex;align-items:end;flex-wrap:wrap;gap:18px 24px;padding:16px 26px 20px;border-top:1px solid var(--tp-line);background:var(--tp-panel)}
 #${ROOT} .tp-control-group{display:grid;gap:7px;min-width:0}
 #${ROOT} .tp-control-title{color:var(--tp-muted);font-size:11px;font-weight:650;letter-spacing:.035em}
 #${ROOT} .tp-choice-group{display:flex;flex-wrap:wrap;gap:5px}
 #${ROOT} .tp-choice,#${ROOT} .tp-theme-choice{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:6px 10px;border:1px solid var(--tp-line);border-radius:10px;background:var(--tp-bg);color:var(--tp-muted);font:600 12px/1.3 "Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#${ROOT} .tp-theme-choice{width:42px;height:42px;min-width:42px;min-height:42px;padding:0;border-radius:50%;transition:border-color .18s ease,box-shadow .18s ease}
+#${ROOT} .tp-theme-choice .tp-icon-badge{width:30px;height:30px;border-radius:50%}
+#${ROOT} .tp-control-group[data-group="theme"] .tp-choice-group{gap:8px}
 #${ROOT} .tp-choice:hover,#${ROOT} .tp-theme-choice:hover{border-color:var(--tp-accent);color:var(--tp-text)}
 #${ROOT} .tp-choice[aria-pressed="true"],#${ROOT} .tp-theme-choice[aria-pressed="true"]{border-color:var(--tp-accent);background:var(--tp-bg);color:var(--tp-text);box-shadow:inset 0 0 0 1px var(--tp-accent)}
 #${ROOT} .tp-icon-badge{display:inline-flex;align-items:center;justify-content:center;flex:none;width:25px;height:25px;border-radius:7px;background:var(--tp-panel);color:var(--tp-accent)}
@@ -262,11 +274,19 @@ const STYLE = `
 #${ROOT} .tp-stage-proof p+p{margin-top:4px}
 #${ROOT} .tp-stage-source{margin-top:6px;font-size:11px}
 #${ROOT}[data-show-stages="false"] .tp-stages{display:none}
-@media(prefers-reduced-motion:reduce){#${ROOT} .tp-stage-chevron{transition:none}}
+@supports selector(::details-content) and (interpolate-size:allow-keywords){
+#${ROOT}{interpolate-size:allow-keywords}
+#${ROOT} .tp-dashboard-disclosure::details-content,#${ROOT} .tp-settings::details-content,#${ROOT} .tp-stage-disclosure::details-content,#${ROOT} .tp-details::details-content{height:0;overflow:clip;transition:height .28s ease,content-visibility .28s ease allow-discrete}
+#${ROOT} .tp-dashboard-disclosure[open]::details-content,#${ROOT} .tp-settings[open]::details-content,#${ROOT} .tp-stage-disclosure[open]::details-content,#${ROOT} .tp-details[open]::details-content{height:auto}
+@media(prefers-reduced-motion:reduce){#${ROOT} .tp-dashboard-disclosure::details-content,#${ROOT} .tp-settings::details-content,#${ROOT} .tp-stage-disclosure::details-content,#${ROOT} .tp-details::details-content{transition:none}}
+}
+@media(prefers-reduced-motion:reduce){#${ROOT} .tp-compact-chevron,#${ROOT} .tp-settings-chevron,#${ROOT} .tp-stage-chevron,#${ROOT} .tp-compact-action,#${ROOT} .tp-settings-summary,#${ROOT} .tp-theme-choice{transition:none}}
 @media(max-width:600px){#${ROOT} .tp-header{display:block;padding:20px 56px 16px 16px}#${ROOT} h2{font-size:21px}#${ROOT} .tp-meta{margin-top:12px;text-align:left}#${ROOT} .tp-selected{padding:0 16px 16px}#${ROOT} .tp-column-head{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}#${ROOT} .tp-task{grid-template-columns:minmax(0,1fr);gap:14px;padding:20px 16px 8px}#${ROOT} .tp-details-row{padding:0 16px 8px}#${ROOT} .tp-progress-cell{width:100%}#${ROOT} .tp-meter-line{gap:10px}#${ROOT} .tp-state{padding-top:2px}#${ROOT} .tp-details dl{grid-template-columns:minmax(0,1fr);gap:4px}#${ROOT} .tp-details dd+dt{margin-top:8px}#${ROOT} .tp-total{padding:20px 16px}#${ROOT} .tp-total h3{font-size:20px}#${ROOT} .tp-warnings{padding:14px 16px}#${ROOT} .tp-footer{padding:16px}#${ROOT} .tp-empty{padding:20px 16px}}
-@media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT} .tp-theme-choice{min-width:calc(50% - 3px)}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
+@media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
 @media(max-width:600px){#${ROOT} .tp-compact-summary{grid-template-columns:58px minmax(0,1fr) auto;gap:9px;min-height:76px;padding:9px 48px 9px 12px}#${ROOT} .tp-compact-ring{width:56px;height:56px;font-size:14px}#${ROOT} .tp-compact-range{font-size:10px}#${ROOT} .tp-compact-unknown{font-size:20px}#${ROOT} .tp-compact-title{font-size:13px}#${ROOT} .tp-compact-stage-wrap{flex-wrap:wrap;gap:2px 7px}#${ROOT} .tp-compact-action{min-height:30px;padding:4px 6px;font-size:10px}#${ROOT} .tp-wide-summary{padding-right:48px}}
-@container (max-width:460px){#${ROOT} .tp-compact-summary{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"ring main" "ring action";gap:4px 9px;min-height:80px;padding:9px 48px 9px 12px}#${ROOT} .tp-compact-ring{grid-area:ring;align-self:center;width:54px;height:54px;font-size:14px}#${ROOT} .tp-compact-range{font-size:10px}#${ROOT} .tp-compact-unknown{font-size:20px}#${ROOT} .tp-compact-main{grid-area:main}#${ROOT} .tp-compact-title{font-size:12px}#${ROOT} .tp-compact-stage-wrap{flex-wrap:wrap;gap:2px 6px}#${ROOT} .tp-compact-action{grid-area:action;justify-self:start;min-height:27px;padding:3px 6px;font-size:10px}}
+@media(max-width:600px){#${ROOT} .tp-settings{padding:0 16px 10px}#${ROOT} .tp-settings .tp-controls{padding:11px 12px}}
+@container (max-width:460px){#${ROOT} .tp-compact-summary{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"ring main" "ring action";gap:4px 9px;min-height:80px;padding:9px 48px 9px 12px}#${ROOT} .tp-compact-ring{grid-area:ring;align-self:center;width:54px;height:54px;font-size:14px}#${ROOT} .tp-compact-range{font-size:10px}#${ROOT} .tp-compact-unknown{font-size:20px}#${ROOT} .tp-compact-main{grid-area:main}#${ROOT} .tp-compact-title{font-size:12px}#${ROOT} .tp-compact-stage-wrap{flex-wrap:wrap;gap:2px 6px}#${ROOT} .tp-compact-action{grid-area:action;justify-self:end;min-height:27px;padding:3px 6px;font-size:10px}}
+@container (max-width:460px){#${ROOT} .tp-settings{padding:0 12px 10px}#${ROOT} .tp-settings .tp-controls{padding:10px}}
 `;
 
 // This constant never contains snapshot strings. It only changes presentation
@@ -366,7 +386,11 @@ function scopeSummary(report) {
 function renderControls(view, theme, stages) {
   const views = [['bar', 'Полоса'], ['ring', 'Круг']];
   const themes = [['night', 'Ночная'], ['light', 'Светлая'], ['indigo', 'Индиго'], ['forest', 'Лесная']];
-  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" role="switch" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
+  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${controlIcon(value)}<span>${label}</span></button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-label="${label} тема" title="${label} тема" aria-pressed="${value === theme}">${controlIcon(value)}</button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" role="switch" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
+}
+function renderSettings(view, theme, stages) {
+  const icon = '<svg class="tp-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.6 2.7h2.8l.5 2.1 1.7.7 1.8-1.1 2 2-1.1 1.8.7 1.7 2.1.5v2.8l-2.1.5-.7 1.7 1.1 1.8-2 2-1.8-1.1-1.7.7-.5 2.1h-2.8l-.5-2.1-1.7-.7-1.8 1.1-2-2 1.1-1.8-.7-1.7-2.1-.5v-2.8l2.1-.5.7-1.7-1.1-1.8 2-2 1.8 1.1 1.7-.7.5-2.1Z"/><circle cx="12" cy="12" r="2.8"/></svg>';
+  return `<details class="tp-settings"><summary class="tp-settings-summary">${icon}<span>Настройки отображения</span><span class="tp-settings-chevron" aria-hidden="true"></span></summary>${renderControls(view, theme, stages)}</details>`;
 }
 
 // An offline fragment. Report computation belongs to core.mjs; the only script
@@ -386,5 +410,5 @@ export function renderHtml(report, options = {}) {
   const refs = [...new Set(report.tasks.filter(task => task.source).map(task => task.source.ref))];
   const compact = report.selection.kind === 'task' && report.tasks.length === 1;
   const summary = compact ? compactSummary(report.tasks[0], report.demo) : scopeSummary(report);
-  return `<section id="${ROOT}" data-task-progress data-view="${view}" data-theme="${theme}" data-show-stages="${stages}" lang="ru" aria-label="${text(heading)}"><style>${STYLE}</style><details class="tp-dashboard-disclosure${compact ? ' tp-dashboard-single' : ''}"${compact ? '' : ' open'}>${summary}<div class="tp-expanded"><header class="tp-header"><div><p class="tp-kicker">Пульт задач</p><h2>${text(heading)}</h2>${report.demo ? '<p class="tp-demo">Демонстрация · синтетические данные, не текущий прогресс рабочих проектов.</p>' : ''}</div><p class="tp-meta"><span>Показ: ${text(report.renderedAt)}</span><span>Порог свежести: ${text(report.staleAfterMinutes)} мин.</span></p></header>${renderControls(view, theme, stages)}${selected}${rows}${renderAggregate(report.aggregate)}${warnings}<footer class="tp-footer"><p>Источники: ${refs.length ? refs.map(text).join(' · ') : 'не переданы'}. Полные evidence — в подробностях задач.</p><p>Оценка относится только к выбранной области и времени. Evidence переданы источником; renderer их внешне не проверяет.</p></footer></div></details><script>${SCRIPT}</script></section>\n`;
+  return `<section id="${ROOT}" data-task-progress data-view="${view}" data-theme="${theme}" data-show-stages="${stages}" lang="ru" aria-label="${text(heading)}"><style>${STYLE}</style><details class="tp-dashboard-disclosure${compact ? ' tp-dashboard-single' : ''}"${compact ? '' : ' open'}>${summary}<div class="tp-expanded"><header class="tp-header"><div><p class="tp-kicker">Пульт задач</p><h2>${text(heading)}</h2>${report.demo ? '<p class="tp-demo">Демонстрация · синтетические данные, не текущий прогресс рабочих проектов.</p>' : ''}</div><p class="tp-meta"><span>Показ: ${text(report.renderedAt)}</span><span>Порог свежести: ${text(report.staleAfterMinutes)} мин.</span></p></header>${renderSettings(view, theme, stages)}${selected}${rows}${renderAggregate(report.aggregate)}${warnings}<footer class="tp-footer"><p>Источники: ${refs.length ? refs.map(text).join(' · ') : 'не переданы'}. Полные evidence — в подробностях задач.</p><p>Оценка относится только к выбранной области и времени. Evidence переданы источником; renderer их внешне не проверяет.</p></footer></div></details><script>${SCRIPT}</script></section>\n`;
 }
