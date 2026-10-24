@@ -2,15 +2,15 @@
 
 Skill-плагин показывает одну задачу компактной шкалой, несколько — таблицей. Результат включает точную область, примерно оценённый процент/диапазон, принятую оценку checklist, стадию, evidence, препятствия и свежесть. Unknown остаётся неизвестным; общий процент требует явного состава и весов. Работа или потраченное время сами по себе не добавляют проценты.
 
-Текущая версия распространения: **1.2.0**, закреплённый ref **v1.2.0**. Доступны полоса и круговой прогресс, четыре выбираемые темы и этапы. Расчёт прогресса сохранён; контракт дополнен необязательным поясняющим перечнем этапов. Публичный репозиторий и Release доступны для чтения без авторизации.
+Текущая версия распространения: **1.3.0**, закреплённый ref **v1.3.0**. Доступны полоса и круговой прогресс, четыре выбираемые темы и этапы. Примерную оценку можно подготовить по явному плану и подтверждённым шагам. [Репозиторий публичный](https://github.com/MaximillianVoss/codex-task-progress-plugin); для чтения и установки достаточно HTTPS.
 
 В Codex с поддержкой inline-визуализации skill показывает графический результат; текстовый Markdown остаётся запасным вариантом и форматом CLI по умолчанию. Он не создаёт закреплённый нативный виджет, фоновые опросы, API-вызовы или записи в Planner. Нужен Node.js20+, установка npm-зависимостей не требуется.
 
 ## Если плагин уже подключён
 
-Используйте доступный `$task-progress:task-progress` (либо `$task-progress`, если клиент показывает короткое имя). Не устанавливайте второй экземпляр ради нового чата. Для кругового вида, тем и этапов нужна версия1.2.0. При обновлении проверьте существующий источник marketplace, версию и enabled только этого плагина.
+Используйте доступный `$task-progress:task-progress` (либо `$task-progress`, если клиент показывает короткое имя). Не устанавливайте второй экземпляр ради нового чата. Для подготовки оценки из плана по обновлённой инструкции нужна версия 1.3.0. При обновлении проверьте существующий источник marketplace, версию и enabled только этого плагина.
 
-Пример рабочего запроса: «Покажи примерный прогресс task TASK_ID из явно указанного файла `progress.safe.json`, сохрани источник и unknown». Для нескольких задач указать project/portfolio ID либо точные taskId. Данные должны отвечать [контракту](plugins/task-progress/skills/task-progress/references/contract.md).
+Пример рабочего запроса: «Покажи примерный прогресс task TASK_ID из явно указанного файла `progress.safe.json`, сохрани источник и unknown». Для нескольких задач указать project/portfolio ID либо точные taskId. Данные должны отвечать [контракту](plugins/task-progress/skills/task-progress/references/contract.md). Если готовой оценки нет, но у задачи есть явный план и подтверждения выполненных шагов, агент сначала готовит отдельный безопасный снимок с примерной оценкой по этапам. Равные веса без весов в плане называют оценочным допущением; уже принятый checklist не заменяют.
 
 ## Установка в другой среде
 
@@ -20,8 +20,8 @@ Skill-плагин показывает одну задачу компактно
 
 ```powershell
 # Выберите свободную постоянную папку на X, вне OneDrive.
-wsl -d Ubuntu-22.04 --exec git clone --branch v1.2.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin
-codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin' --json
+wsl -d Ubuntu-22.04 --exec git clone --branch v1.3.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin-install-v1.3.0
+codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin-install-v1.3.0' --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
 ```
@@ -29,13 +29,13 @@ codex plugin list --marketplace task-progress-local --json
 В новой Linux/macOS-среде:
 
 ```sh
-git clone --branch v1.2.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
+git clone --branch v1.3.0 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
 codex plugin marketplace add ./codex-task-progress-plugin --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
 ```
 
-Для чтения публичного репозитория по HTTPS ключ GitHub не нужен. Для записи владелец использует свою существующую настройку SSH в WSL.
+Для записи в GitHub используйте существующий авторизованный SSH-профиль в WSL; для указанного клонирования он не требуется. Приватные ключи из этого проекта не копируются.
 
 Marketplace называется `task-progress-local`; он указывает на локально проверенную копию из GitHub. Если такой источник уже зарегистрирован, сначала проверьте его существующий путь и версию; не заменяйте источник молча. Команда marketplace add только регистрирует источник, plugin add устанавливает плагин. Затем отдельно проверьте installed/enabled именно его карточки в Plugins.
 
@@ -53,7 +53,7 @@ npm run example
 pwsh -File scripts/Build-Release.ps1
 ```
 
-Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и выполняет шесть пробных запусков renderer из архива. Результат — `dist/task-progress-1.2.0-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
+Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и оба вывода renderer с исходниками. Результат — `dist/task-progress-1.3.0-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
 
 Для отдельной демонстрации:
 
@@ -61,6 +61,7 @@ pwsh -File scripts/Build-Release.ps1
 node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/single.safe.json --at 2026-10-21T12:10:00Z
 node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/multiple.safe.json --at 2026-10-21T12:10:00Z --format html
 node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/stages.safe.json --at 2026-10-21T12:10:00Z --format html --view ring --theme indigo --stages show
+node plugins/task-progress/skills/task-progress/scripts/render.mjs --input plugins/task-progress/examples/plan.safe.json --at 2026-10-21T12:10:00Z --format html
 ```
 
 Примеры синтетические. `--at` воспроизводит датированный пример, не освежает состояние. Для рабочих данных его не передавать.

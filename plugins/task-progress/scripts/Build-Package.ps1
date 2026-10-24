@@ -41,7 +41,7 @@ try {
   if ($testText -notmatch '# pass (\d+)') { throw 'Missing pass count' }
   $passCount = [int]$Matches[1]
   if ($passCount -ne $testCount -or $testText -notmatch '# fail 0') { throw 'Incomplete test success' }
-  foreach ($exampleName in @('single', 'multiple', 'stages')) {
+  foreach ($exampleName in @('single', 'multiple', 'stages', 'plan')) {
     foreach ($format in @('markdown', 'html')) {
       $preview = (& node 'skills/task-progress/scripts/render.mjs' --input ('examples/' + $exampleName + '.safe.json') --at '2026-10-21T12:10:00Z' --format $format | Out-String)
       if ($LASTEXITCODE -ne 0) { throw ('Example failed: ' + $exampleName + '/' + $format) }
@@ -95,7 +95,7 @@ if ($catalogCopy.sha256 -ne $catalogOriginal.sha256) { throw 'Extracted marketpl
 if (@(Get-ChildItem -LiteralPath $extractedRoot -File -Recurse -Force).Count -ne ($sourceReceipts.Count + 1)) { throw 'Unexpected archive contents' }
 Push-Location -LiteralPath (Join-Path $extractedRoot 'plugins/task-progress')
 try {
-  foreach ($exampleName in @('single', 'multiple', 'stages')) {
+  foreach ($exampleName in @('single', 'multiple', 'stages', 'plan')) {
     foreach ($format in @('markdown', 'html')) {
       $preview = (& node 'skills/task-progress/scripts/render.mjs' --input ('examples/' + $exampleName + '.safe.json') --at '2026-10-21T12:10:00Z' --format $format | Out-String)
       if ($LASTEXITCODE -ne 0) { throw 'Extracted CLI failed' }
@@ -105,14 +105,14 @@ try {
   }
 } finally { Pop-Location }
 $extractCheckPath = Join-Path $evidenceRoot 'extracted-verification.safe.json'
-Save-SafeJson $extractCheckPath ([ordered]@{ status = 'passed'; sourceFilesChecked = $checkedCount; marketplaceChecked = $true; extraFiles = 0; extractedCliExamples = @('single/markdown', 'single/html', 'multiple/markdown', 'multiple/html', 'stages/markdown', 'stages/html'); outputEqualsSource = $true; root = $extractedRoot })
+Save-SafeJson $extractCheckPath ([ordered]@{ status = 'passed'; sourceFilesChecked = $checkedCount; marketplaceChecked = $true; extraFiles = 0; extractedCliExamples = @('single/markdown', 'single/html', 'multiple/markdown', 'multiple/html', 'stages/markdown', 'stages/html', 'plan/markdown', 'plan/html'); outputEqualsSource = $true; root = $extractedRoot })
 $generatedAt = [DateTimeOffset]::UtcNow.ToString('o')
 $ready = [ordered]@{
   schemaVersion = 1; status = 'ready_for_install'; generatedAt = $generatedAt; plugin = 'task-progress'; version = $manifest.version
   installed = $null; installedByBuild = $false; globalConfigModifiedByBuild = $false; plannerWritten = $false; networkOrApiCallsByPlugin = $false
   sourceRoot = $sourceRoot; sourceTreeSha256 = $treeHash; sourceFiles = Get-SafeFileReceipt $sourcesPath
   archive = Get-SafeFileReceipt $archivePath; marketplaceRoot = $marketplaceRoot; extractedRoot = $extractedRoot
-  checks = [ordered]@{ nodeVersion = (& node --version); tests = $testCount; passed = $passCount; failed = 0; archiveSourceFilesIdentical = $checkedCount; marketplaceIdentical = $true; extractedCliExamplesPassed = 6; pluginManifestPortableAndCompatibilityAgree = $true; userCodexInstall = 'not_run_by_build'; nativeCodexScreenshot = 'not_checked_by_build'; markdownPreview = 'saved_in_evidence'; skillCreatorValidator = 'not_run_by_build' }
+  checks = [ordered]@{ nodeVersion = (& node --version); tests = $testCount; passed = $passCount; failed = 0; archiveSourceFilesIdentical = $checkedCount; marketplaceIdentical = $true; extractedCliExamplesPassed = 8; pluginManifestPortableAndCompatibilityAgree = $true; userCodexInstall = 'not_run_by_build'; nativeCodexScreenshot = 'not_checked_by_build'; markdownPreview = 'saved_in_evidence'; skillCreatorValidator = 'not_run_by_build' }
   evidence = @(Get-ChildItem -LiteralPath $evidenceRoot -File | Sort-Object FullName | ForEach-Object { Get-SafeFileReceipt $_.FullName })
   limitations = @('Skill plugin with Markdown output; no pinned native widget, MCP App, automatic polling, or live Planner adapter.', 'External evidence authenticity and full population are asserted by the input source, not independently fetched.', 'Build does not install the plugin or verify native Codex discovery/rendering. Existing profile state is unknown to this builder.', 'Font and table width depend on the Codex client; dated demo is synthetic.')
   install = @('Verify archive bytes and SHA256 from this receipt.', ('Use marketplace root: ' + $marketplaceRoot), ('codex plugin marketplace add "' + $marketplaceRoot + '" --json (registration only)'), 'codex plugin add task-progress@task-progress-local --json (installation)', 'codex plugin list --marketplace task-progress-local --json (installed entries only)', 'Use an existing enabled task-progress plugin without reinstalling when possible. Verify enabled on this plugin only.', 'Automatic discovery in the current chat depends on the client; if absent use next session or explicitly read installed SKILL.md.', 'Verify actual installation and enabled separately from discovery before claiming installed.')

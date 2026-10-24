@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "demo": true,
+  "selection": { "kind": "task", "id": "demo-plan" },
+  "staleAfterMinutes": 60,
+  "tasks": [
+    {
+      "id": "demo-plan",
+      "title": "Развёртывание учебного проекта",
+      "projectId": "demo-project",
+      "portfolioId": "demo-portfolio",
+      "status": "blocked",
+      "stage": "Ожидается доступ к тестовой системе",
+      "updatedAt": "2026-10-21T12:00:00Z",
+      "dataStatus": "ok",
+      "accepted": [
+        { "label": "Пакет проверен", "evidence": "demo:package-check-accepted" },
+        { "label": "Установщик проверен", "evidence": "demo:installer-check-accepted" }
+      ],
+      "blockers": ["Нет доступа к тестовому сеансу для установки"],
+      "acceptance": null,
+      "progress": {
+        "basis": "stages",
+        "scope": { "kind": "task", "id": "demo-plan" },
+        "value": null,
+        "source": {
+          "ref": "demo:explicit-deployment-plan",
+          "evidence": "Четыре обязательных этапа явного учебного плана; равные веса 1:1:1:1 — объявленная методика примерной оценки; подтверждены два этапа"
+        },
+        "stages": [
+          { "id": "package", "label": "Подготовить пакет", "weight": 1, "status": "accepted", "evidence": "demo:package-check-accepted" },
+          { "id": "installer", "label": "Проверить установщик", "weight": 1, "status": "accepted", "evidence": "demo:installer-check-accepted" },
+          { "id": "install", "label": "Установить среду", "weight": 1, "status": "blocked" },
+          { "id": "verify", "label": "Проверить проект", "weight": 1, "status": "pending" }
+        ]
+      }
+    }
+  ],
+  "aggregation": null
+}

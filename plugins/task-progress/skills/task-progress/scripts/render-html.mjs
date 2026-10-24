@@ -39,8 +39,10 @@ function currentValue(task) {
 function renderProgress(task) {
   const value = currentValue(task);
   if (!value) {
-    const last = task.lastKnown ? `<p class="tp-last">Последняя оценка: ${text(estimateText(task, task.lastKnown))}${task.basis === 'fixed_checklist' ? ' по checklist' : ''}. Текущий прогресс неизвестен.</p>` : '';
-    return `<div class="tp-progress"><p class="tp-unknown">Неизвестно <span class="tp-question" aria-hidden="true">?</span></p>${last}</div>`;
+    const historicalAcceptance = task.status === 'accepted' && task.lastKnown?.min === 100 && task.lastKnown.max === 100;
+    const last = historicalAcceptance ? '<p class="tp-last">Последняя подтверждённая приёмка: 100% по снимку. Текущий прогресс неизвестен.</p>' : task.lastKnown ? `<p class="tp-last">Последняя оценка: ${text(estimateText(task, task.lastKnown))}${task.basis === 'fixed_checklist' ? ' по checklist' : ''}. Текущий прогресс неизвестен.</p>` : '';
+    const missing = task.basis === 'unknown' && !task.lastKnown ? '<p class="tp-last">Источник не передал оценку прогресса; процент не вычислялся.</p>' : '';
+    return `<div class="tp-progress"><p class="tp-unknown">Неизвестно <span class="tp-question" aria-hidden="true">?</span></p>${last}${missing}</div>`;
   }
   const label = task.acceptanceConfirmed ? '100% · принято' : estimateText(task, value);
   const accessible = task.acceptanceConfirmed ? '100% · фактическая приёмка подтверждена' : `${rangeText(value, true)}${task.basis === 'fixed_checklist' ? ' по принятому checklist' : ', приблизительная оценка'}`;
@@ -53,15 +55,18 @@ function renderStages(task) {
   const stages = Array.isArray(task.stages) ? task.stages : [];
   const fresh = task.freshness.state === 'fresh';
   const origin = task.stageSource === 'progress' ? 'Этапы оценки' : 'Этапы';
+  const relation = task.stageSource === 'display' ? 'Перечень для ориентира · не меняет процент' : task.stageSource === 'progress' ? 'Принятые шаги учитываются по весам' : '';
   const freshness = !fresh && stages.length > 0 ? '<p class="tp-stage-freshness tp-attention">Этапы по последнему снимку</p>' : '';
   const source = task.stageSourceEvidence ? `<details class="tp-details tp-stage-source"><summary>Источник этапов</summary><p>${sourceText(task.stageSourceEvidence)}</p></details>` : '';
+  const acceptedCount = stages.filter(stage => stage.status === 'accepted').length;
+  const summary = stages.length ? `${acceptedCount} из ${stages.length} принято${fresh ? '' : ' по снимку'}` : 'План пока не передан';
   const items = stages.length ? `<ol class="tp-stage-list">${stages.map((stage, index) => {
     const status = Object.hasOwn(STAGE_LABELS, stage.status) ? stage.status : 'unknown';
     const label = !fresh && status === 'accepted' ? 'Принят по снимку' : STAGE_LABELS[status];
     const proof = `<details class="tp-details tp-stage-proof"><summary>Основание</summary><p>ID: ${text(stage.id)}.</p>${stage.evidence ? `<p>Evidence: ${text(stage.evidence)}</p>` : '<p>Evidence не передан.</p>'}${stage.weight !== undefined ? `<p>Вес источника: ${text(exact(stage.weight))}.</p>` : ''}</details>`;
-    return `<li class="tp-stage-item" data-status="${status}"><span class="tp-stage-index" aria-hidden="true">${index + 1}</span><div><p class="tp-stage-label">${text(stage.label)}</p><p class="tp-stage-status">${text(label)}</p>${proof}</div></li>`;
-  }).join('')}</ol>` : '<p class="tp-stage-empty">Этапы не переданы</p>';
-  return `<section class="tp-stages${fresh ? '' : ' tp-stages-stale'}" aria-label="Этапы задачи ${text(task.title)}"><h4>${origin}</h4>${freshness}${items}${source}</section>`;
+    return `<li class="tp-stage-item" data-status="${status}"><span class="tp-stage-index" aria-hidden="true">${index + 1}</span><div class="tp-stage-content"><div class="tp-stage-top"><p class="tp-stage-label">${text(stage.label)}</p><p class="tp-stage-status">${text(label)}</p></div>${proof}</div></li>`;
+  }).join('')}</ol>` : '<p class="tp-stage-empty">Этапы не переданы источником.</p>';
+  return `<section class="tp-stages${fresh ? '' : ' tp-stages-stale'}" aria-label="Этапы задачи ${text(task.title)}"><div class="tp-stages-heading"><div><p class="tp-stages-kicker">Маршрут задачи</p><h4>${origin}</h4></div><p class="tp-stages-summary">${summary}</p></div>${relation ? `<p class="tp-stages-relation">${relation}</p>` : ''}${freshness}${items}${source}</section>`;
 }
 function renderTaskDetails(task) {
   const blockers = task.blockers.length ? task.blockers.map(text).join('; ') : task.acceptanceConfirmed ? 'Открытых препятствий нет' : 'Сведения о препятствиях и остатке не переданы';
@@ -73,9 +78,10 @@ function renderTaskDetails(task) {
 }
 function renderTask(task) {
   const status = Object.hasOwn(STATUS_LABELS, task.status) ? task.status : 'unknown';
-  const historicalAcceptance = status === 'accepted' && !task.acceptanceConfirmed;
-  const statusLabel = historicalAcceptance ? 'Приёмка по снимку' : STATUS_LABELS[status];
-  const statusStyle = historicalAcceptance ? 'unknown' : status;
+  const unconfirmedAcceptance = status === 'accepted' && !task.acceptanceConfirmed;
+  const historicalAcceptance = unconfirmedAcceptance && task.lastKnown?.min === 100 && task.lastKnown.max === 100;
+  const statusLabel = historicalAcceptance ? 'Приёмка по снимку' : unconfirmedAcceptance ? 'Приёмка не подтверждена' : STATUS_LABELS[status];
+  const statusStyle = unconfirmedAcceptance ? 'unknown' : status;
   const fresh = task.freshness.state === 'fresh';
   const blockers = task.blockers.length ? `<p class="tp-blockers tp-attention">${task.blockers.map(text).join('; ')}</p>` : '';
   const freshness = fresh ? '' : `<p class="tp-freshness tp-attention">${text(task.freshness.label)}</p>`;
@@ -109,12 +115,22 @@ const STYLE = `
 #${ROOT} .tp-meta{flex:0 1 240px;color:var(--tp-muted);font-size:11px;text-align:right}
 #${ROOT} .tp-meta span{display:block}
 #${ROOT} .tp-selected{padding:0 26px 18px;color:var(--tp-muted);font-size:12px}
-#${ROOT} .tp-controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px 18px;padding:0 26px 18px}
-#${ROOT} .tp-control{display:grid;gap:3px;color:var(--tp-muted);font-size:11px}
-#${ROOT} .tp-control select{max-width:100%;min-height:32px;padding:4px 8px;border:1px solid var(--tp-line);border-radius:6px;background:var(--tp-panel);color:var(--tp-text);font:12px/1.4 "Segoe UI",system-ui,sans-serif}
-#${ROOT} .tp-control-check{display:flex;align-items:center;gap:7px;min-height:32px;color:var(--tp-text);font-size:12px}
-#${ROOT} .tp-control-check input{width:16px;height:16px;margin:0;accent-color:var(--tp-accent)}
-#${ROOT} .tp-control select:focus-visible,#${ROOT} .tp-control-check input:focus-visible{outline:2px solid var(--tp-accent);outline-offset:3px}
+#${ROOT} .tp-controls{display:flex;align-items:end;flex-wrap:wrap;gap:18px 24px;padding:16px 26px 20px;border-top:1px solid var(--tp-line);background:var(--tp-panel)}
+#${ROOT} .tp-control-group{display:grid;gap:7px;min-width:0}
+#${ROOT} .tp-control-title{color:var(--tp-muted);font-size:11px;font-weight:650;letter-spacing:.035em}
+#${ROOT} .tp-choice-group{display:flex;flex-wrap:wrap;gap:5px}
+#${ROOT} .tp-choice,#${ROOT} .tp-theme-choice{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:6px 11px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-bg);color:var(--tp-muted);font:600 12px/1.3 "Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#${ROOT} .tp-choice:hover,#${ROOT} .tp-theme-choice:hover{border-color:var(--tp-accent);color:var(--tp-text)}
+#${ROOT} .tp-choice[aria-pressed="true"],#${ROOT} .tp-theme-choice[aria-pressed="true"]{border-color:var(--tp-accent);background:var(--tp-bg);color:var(--tp-text);box-shadow:inset 0 0 0 1px var(--tp-accent)}
+#${ROOT} .tp-theme-swatch{display:inline-block;flex:none;width:15px;height:15px;border:1px solid rgba(125,139,153,.58);border-radius:50%}
+#${ROOT} .tp-theme-swatch[data-swatch="night"]{background:#1b2229;box-shadow:inset 0 0 0 4px #36d2ed}
+#${ROOT} .tp-theme-swatch[data-swatch="light"]{background:#fffdf9;box-shadow:inset 0 0 0 4px #007a91}
+#${ROOT} .tp-theme-swatch[data-swatch="indigo"]{background:#19172a;box-shadow:inset 0 0 0 4px #b19aff}
+#${ROOT} .tp-theme-swatch[data-swatch="forest"]{background:#13241e;box-shadow:inset 0 0 0 4px #72d7a0}
+#${ROOT} .tp-stage-toggle{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 11px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-bg);color:var(--tp-text);font-size:12px;font-weight:600;cursor:pointer}
+#${ROOT}[data-show-stages="true"] .tp-stage-toggle{border-color:var(--tp-accent)}
+#${ROOT} .tp-stage-toggle input{width:16px;height:16px;margin:0;accent-color:var(--tp-accent);cursor:pointer}
+#${ROOT} .tp-choice:focus-visible,#${ROOT} .tp-theme-choice:focus-visible,#${ROOT} .tp-stage-toggle input:focus-visible{outline:2px solid var(--tp-accent);outline-offset:3px}
 #${ROOT} .tp-column-head,#${ROOT} .tp-task{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.3fr) minmax(0,1fr);column-gap:26px;padding:18px 26px}
 #${ROOT} .tp-column-head{border-top:1px solid var(--tp-line);background:var(--tp-panel);color:var(--tp-muted);font-size:13px;font-weight:600}
 #${ROOT} .tp-task{border-top:1px solid var(--tp-line);row-gap:12px;align-items:start;padding-top:16px;padding-bottom:4px}
@@ -172,26 +188,43 @@ const STYLE = `
 #${ROOT}[data-view="ring"] .tp-state{grid-area:state}
 #${ROOT}[data-view="ring"] .tp-meter-line{display:none}
 #${ROOT}[data-view="ring"] .tp-ring{display:block}
-#${ROOT} .tp-stages{margin-top:8px;padding:12px;border:1px solid var(--tp-line);border-radius:8px;background:var(--tp-panel)}
-#${ROOT} .tp-stages h4{font-size:13px;font-weight:650}
-#${ROOT} .tp-stage-freshness{margin-top:4px;font-size:11px}
-#${ROOT} .tp-stage-empty{margin-top:6px;color:var(--tp-muted);font-size:12px}
-#${ROOT} .tp-stage-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;list-style:none;padding:0;margin-top:10px}
-#${ROOT} .tp-stage-item{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:9px;border:1px solid var(--tp-line);border-radius:7px;background:var(--tp-bg)}
-#${ROOT} .tp-stage-index{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--tp-line);border-radius:50%;color:var(--tp-muted);font-size:11px;font-variant-numeric:tabular-nums}
-#${ROOT} .tp-stage-label{font-size:12px;font-weight:600}
-#${ROOT} .tp-stage-status{margin-top:3px;color:var(--tp-muted);font-size:11px}
+#${ROOT} .tp-stages{margin-top:10px;padding:16px 18px;border:1px solid var(--tp-line);border-radius:11px;background:var(--tp-panel)}
+#${ROOT} .tp-stages-heading{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:6px 14px}
+#${ROOT} .tp-stages-kicker{color:var(--tp-muted);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+#${ROOT} .tp-stages h4{font-size:16px;font-weight:650;line-height:1.3}
+#${ROOT} .tp-stages-summary{color:var(--tp-muted);font-size:12px;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-stages-relation{margin-top:4px;color:var(--tp-muted);font-size:11px}
+#${ROOT} .tp-stage-freshness{margin-top:5px;font-size:11px}
+#${ROOT} .tp-stage-empty{margin-top:12px;color:var(--tp-muted);font-size:12px}
+#${ROOT} .tp-stage-list{display:grid;gap:0;list-style:none;padding:0;margin-top:14px;border:1px solid var(--tp-line);border-radius:9px;overflow:hidden;background:var(--tp-bg)}
+#${ROOT} .tp-stage-item{display:grid;grid-template-columns:29px minmax(0,1fr);align-items:start;gap:11px;padding:12px 14px;border-left:3px solid transparent}
+#${ROOT} .tp-stage-item+.tp-stage-item{border-top:1px solid var(--tp-line)}
+#${ROOT} .tp-stage-item[data-status="accepted"]{border-left-color:var(--tp-accepted)}
+#${ROOT} .tp-stage-item[data-status="checking"]{border-left-color:var(--tp-checking)}
+#${ROOT} .tp-stage-item[data-status="working"]{border-left-color:var(--tp-accent)}
+#${ROOT} .tp-stage-item[data-status="blocked"],#${ROOT} .tp-stage-item[data-status="paused"]{border-left-color:var(--tp-warning)}
+#${ROOT} .tp-stage-index{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:1px solid var(--tp-line);border-radius:50%;color:var(--tp-muted);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-stage-item[data-status="accepted"] .tp-stage-index{border-color:var(--tp-accepted);color:var(--tp-accepted)}
+#${ROOT} .tp-stage-item[data-status="checking"] .tp-stage-index{border-color:var(--tp-checking);color:var(--tp-checking)}
+#${ROOT} .tp-stage-item[data-status="working"] .tp-stage-index{border-color:var(--tp-accent);color:var(--tp-accent)}
+#${ROOT} .tp-stage-item[data-status="blocked"] .tp-stage-index,#${ROOT} .tp-stage-item[data-status="paused"] .tp-stage-index{border-color:var(--tp-warning);color:var(--tp-warning)}
+#${ROOT} .tp-stage-content{min-width:0}
+#${ROOT} .tp-stage-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px 12px}
+#${ROOT} .tp-stage-label{font-size:13px;font-weight:650;line-height:1.4}
+#${ROOT} .tp-stage-status{flex:none;padding:2px 8px;border:1px solid currentColor;border-radius:999px;color:var(--tp-muted);font-size:11px;font-weight:600;line-height:1.4}
 #${ROOT} .tp-stage-item[data-status="accepted"] .tp-stage-status{color:var(--tp-accepted)}
 #${ROOT} .tp-stage-item[data-status="checking"] .tp-stage-status{color:var(--tp-checking)}
 #${ROOT} .tp-stage-item[data-status="working"] .tp-stage-status{color:var(--tp-accent)}
 #${ROOT} .tp-stage-item[data-status="blocked"] .tp-stage-status,#${ROOT} .tp-stage-item[data-status="paused"] .tp-stage-status{color:var(--tp-warning)}
+#${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"]{border-left-color:var(--tp-line)}
+#${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"] .tp-stage-index{border-color:var(--tp-line);color:var(--tp-muted)}
 #${ROOT} .tp-stages-stale .tp-stage-item[data-status="accepted"] .tp-stage-status{color:var(--tp-muted)}
-#${ROOT} .tp-stage-proof{margin-top:4px;font-size:11px}
+#${ROOT} .tp-stage-proof{margin-top:3px;font-size:11px}
 #${ROOT} .tp-stage-proof p+p{margin-top:4px}
-#${ROOT} .tp-stage-source{margin-top:6px;font-size:11px}
+#${ROOT} .tp-stage-source{margin-top:8px;font-size:11px}
 #${ROOT}[data-show-stages="false"] .tp-stages{display:none}
 @media(max-width:600px){#${ROOT} .tp-header{display:block;padding:20px 16px}#${ROOT} h2{font-size:21px}#${ROOT} .tp-meta{margin-top:12px;text-align:left}#${ROOT} .tp-selected{padding:0 16px 16px}#${ROOT} .tp-column-head{display:none}#${ROOT} .tp-task{grid-template-columns:minmax(0,1fr);gap:14px;padding:20px 16px 8px}#${ROOT} .tp-details-row{padding:0 16px 8px}#${ROOT} .tp-progress-cell{width:100%}#${ROOT} .tp-meter-line{gap:10px}#${ROOT} .tp-state{padding-top:2px}#${ROOT} .tp-details dl{grid-template-columns:minmax(0,1fr);gap:4px}#${ROOT} .tp-details dd+dt{margin-top:8px}#${ROOT} .tp-total{padding:20px 16px}#${ROOT} .tp-total h3{font-size:20px}#${ROOT} .tp-warnings{padding:14px 16px}#${ROOT} .tp-footer{padding:16px}#${ROOT} .tp-empty{padding:20px 16px}}
-@media(max-width:600px){#${ROOT} .tp-controls{padding:0 16px 16px;gap:10px 14px}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}#${ROOT} .tp-stage-list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT} .tp-theme-choice{min-width:calc(50% - 3px)}#${ROOT} .tp-stages{padding:14px}#${ROOT} .tp-stage-item{padding:11px}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
 `;
 
 // This constant never contains snapshot strings. It only changes presentation
@@ -200,20 +233,23 @@ const SCRIPT = `
 (() => {
   const root = document.getElementById('task-progress-dashboard');
   if (!root) return;
-  const view = root.querySelector('[data-pref="view"]');
-  const theme = root.querySelector('[data-pref="theme"]');
+  const viewChoices = [...root.querySelectorAll('[data-pref="view"]')];
+  const themeChoices = [...root.querySelectorAll('[data-pref="theme"]')];
   const stages = root.querySelector('[data-pref="stages"]');
-  if (!view || !theme || !stages) return;
+  if (!viewChoices.length || !themeChoices.length || !stages) return;
   const views = new Set(['bar', 'ring']);
   const themes = new Set(['night', 'light', 'indigo', 'forest']);
+  const sync = () => {
+    for (const choice of viewChoices) choice.setAttribute('aria-pressed', String(choice.dataset.value === root.dataset.view));
+    for (const choice of themeChoices) choice.setAttribute('aria-pressed', String(choice.dataset.value === root.dataset.theme));
+    stages.checked = root.dataset.showStages === 'true';
+  };
   const apply = preferences => {
     if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) return;
     if (views.has(preferences.view)) root.dataset.view = preferences.view;
     if (themes.has(preferences.theme)) root.dataset.theme = preferences.theme;
     if (typeof preferences.showStages === 'boolean') root.dataset.showStages = String(preferences.showStages);
-    view.value = root.dataset.view;
-    theme.value = root.dataset.theme;
-    stages.checked = root.dataset.showStages === 'true';
+    sync();
   };
   const savePreferenceChange = () => {
     try {
@@ -224,11 +260,23 @@ const SCRIPT = `
       if (result && typeof result.catch === 'function') result.catch(() => {});
     } catch {}
   };
-  root.addEventListener('change', event => {
-    if (event.target !== view && event.target !== theme && event.target !== stages) return;
-    apply({ view: view.value, theme: theme.value, showStages: stages.checked });
+  root.addEventListener('click', event => {
+    let choice = event.target;
+    while (choice && choice !== root && !choice.getAttribute?.('data-pref')) choice = choice.parentElement;
+    if (!choice || choice === root) return;
+    const preference = choice.getAttribute('data-pref');
+    const value = choice.dataset.value;
+    if (preference === 'view' && views.has(value)) apply({ view: value });
+    else if (preference === 'theme' && themes.has(value)) apply({ theme: value });
+    else return;
     savePreferenceChange();
   });
+  root.addEventListener('change', event => {
+    if (event.target !== stages) return;
+    apply({ showStages: stages.checked });
+    savePreferenceChange();
+  });
+  sync();
   try { apply(window.openai?.widgetState?.privateContent?.taskProgressUI); } catch {}
   window.addEventListener('openai:set_globals', event => {
     try { apply(event.detail?.globals?.widgetState?.privateContent?.taskProgressUI); } catch {}
@@ -238,7 +286,7 @@ const SCRIPT = `
 function renderControls(view, theme, stages) {
   const views = [['bar', 'Полоса'], ['ring', 'Круг']];
   const themes = [['night', 'Ночная'], ['light', 'Светлая'], ['indigo', 'Индиго'], ['forest', 'Лесная']];
-  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><label class="tp-control">Вид<select data-pref="view">${views.map(([value, label]) => `<option value="${value}"${value === view ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="tp-control">Тема<select data-pref="theme">${themes.map(([value, label]) => `<option value="${value}"${value === theme ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="tp-control-check"><input type="checkbox" data-pref="stages"${stages ? ' checked' : ''}>Этапы</label></div>`;
+  return `<div class="tp-controls" role="group" aria-label="Внешний вид прогресса"><div class="tp-control-group" data-group="view"><span class="tp-control-title">Вид прогресса</span><div class="tp-choice-group" role="group" aria-label="Вид прогресса">${views.map(([value, label]) => `<button type="button" class="tp-choice" data-pref="view" data-value="${value}" aria-pressed="${value === view}">${label}</button>`).join('')}</div></div><div class="tp-control-group" data-group="theme"><span class="tp-control-title">Тема</span><div class="tp-choice-group" role="group" aria-label="Тема оформления">${themes.map(([value, label]) => `<button type="button" class="tp-theme-choice" data-pref="theme" data-value="${value}" aria-pressed="${value === theme}"><span class="tp-theme-swatch" data-swatch="${value}" aria-hidden="true"></span><span>${label}</span></button>`).join('')}</div></div><label class="tp-stage-toggle"><input type="checkbox" data-pref="stages"${stages ? ' checked' : ''}><span>Показывать этапы</span></label></div>`;
 }
 
 // An offline fragment. Report computation belongs to core.mjs; the only script

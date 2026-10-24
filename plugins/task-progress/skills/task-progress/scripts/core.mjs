@@ -1,7 +1,7 @@
 const KINDS = new Set(['task', 'tasks', 'project', 'portfolio']);
 const STATUSES = new Set(['working', 'checking', 'blocked', 'paused', 'unknown', 'accepted']);
 const BASES = new Set(['unknown', 'estimate', 'fixed_checklist', 'stages']);
-const PHASES = new Set(['pending', 'working', 'checking', 'accepted', 'unknown']);
+const PHASES = new Set(['pending', 'working', 'checking', 'accepted', 'unknown', 'blocked', 'paused']);
 const DISPLAY_PHASES = new Set([...PHASES, 'blocked', 'paused']);
 const LABELS = { working: '🔵 Работа', checking: '🟣 Проверка', blocked: '🟠 Блокировка', paused: '⏸ Пауза', unknown: '⚪ Неизвестно', accepted: '🟢 Принято' };
 const PHASE_LABELS = { ...LABELS, pending: '⚪ Ожидает', accepted: '🟢 Этап принят' };
@@ -157,6 +157,11 @@ function deriveTask(task, now, staleMinutes) {
       stages = structuredClone(task.progress.stages);
       stageSource = 'progress';
       stageSourceEvidence = structuredClone(task.progress.source);
+      const phases = task.progress.stages;
+      const total = phases.reduce((sum, phase) => sum + phase.weight, 0);
+      const acceptedWeight = phases.filter(phase => phase.status === 'accepted').reduce((sum, phase) => sum + phase.weight, 0);
+      const knownWeight = phases.filter(phase => phase.status !== 'unknown').reduce((sum, phase) => sum + phase.weight, 0);
+      stageCoverage = { acceptedWeight, knownWeight, totalWeight: total };
     }
     if (task.acceptance !== null) requireThat(task.status === 'accepted', 'Приёмка и текущий статус противоречат друг другу');
     if (task.status === 'accepted') {
@@ -167,17 +172,14 @@ function deriveTask(task, now, staleMinutes) {
       acceptanceConfirmed = true;
       // A locked accepted checklist is never increased by an unrelated completion flag.
       if (basis === 'fixed_checklist') requireThat(task.progress.value === 100, 'Принятый checklist ещё не 100%; противоречие с приёмкой');
+      if (basis === 'stages') requireThat(task.progress.stages.every(phase => phase.status === 'accepted'), 'Приёмка всей задачи противоречит незавершённым этапам');
       candidate = { min: 100, max: 100 };
     } else if (basis === 'stages') {
       const phases = task.progress.stages;
-      const total = phases.reduce((sum, phase) => sum + phase.weight, 0);
-      const acceptedWeight = phases.filter(phase => phase.status === 'accepted').reduce((sum, phase) => sum + phase.weight, 0);
-      const knownWeight = phases.filter(phase => phase.status !== 'unknown').reduce((sum, phase) => sum + phase.weight, 0);
-      stageCoverage = { acceptedWeight, knownWeight, totalWeight: total };
       requireThat(phases.every(phase => phase.status !== 'unknown'), 'Статус части этапов неизвестен; текущий процент всей задачи неизвестен');
       requireThat(phases.some(phase => phase.status !== 'accepted'), 'Этапы отмечены принятыми, но фактическая приёмка всей задачи не подтверждена');
-      candidate = { min: acceptedWeight / total * 100, max: acceptedWeight / total * 100 };
-      requireThat(candidate.max < 100 && !(acceptedWeight > 0 && candidate.min === 0), 'Точность чисел недостаточна для честного процента этапов; оценка неизвестна');
+      candidate = { min: stageCoverage.acceptedWeight / stageCoverage.totalWeight * 100, max: stageCoverage.acceptedWeight / stageCoverage.totalWeight * 100 };
+      requireThat(candidate.max < 100 && !(stageCoverage.acceptedWeight > 0 && candidate.min === 0), 'Точность чисел недостаточна для честного процента этапов; оценка неизвестна');
     } else if (task.progress.value !== null) {
       candidate = range(task.progress.value, 'progress.value');
       requireThat(candidate.max < 100, '100% и граница 100% требуют фактической приёмки; процент неизвестен');
@@ -275,9 +277,17 @@ function valueText(value, exact = false) {
 }
 function bar(value) { if (!value) return '`??????????`'; const filled = Math.floor(value.min / 10); return '`' + '▰'.repeat(filled) + '▱'.repeat(10 - filled) + '`'; }
 function progressText(task) {
-  if (!task.progress) return `${bar(null)} **неизвестно**${task.lastKnown ? ` · последняя ${task.basis === 'fixed_checklist' ? 'по checklist' : 'примерно'} ${valueText(task.lastKnown, task.basis === 'fixed_checklist')}` : ''}`;
+  if (!task.progress) {
+    const historicalAcceptance = task.status === 'accepted' && task.lastKnown?.min === 100 && task.lastKnown.max === 100;
+    const last = historicalAcceptance ? ' · последняя подтверждённая приёмка: 100% по снимку' : task.lastKnown ? ` · последняя ${task.basis === 'fixed_checklist' ? 'по checklist' : 'примерно'} ${valueText(task.lastKnown, task.basis === 'fixed_checklist')}` : '';
+    return `${bar(null)} **неизвестно**${last}`;
+  }
   if (task.acceptanceConfirmed) return `${bar(task.progress)} **100% · принято**`;
   return `${bar(task.progress)} **${task.basis === 'fixed_checklist' ? `${valueText(task.progress, true)} по принятому checklist` : `примерно ${valueText(task.progress)}`}**`;
+}
+function statusText(task) {
+  if (task.status !== 'accepted' || task.acceptanceConfirmed) return LABELS[task.status];
+  return task.lastKnown?.min === 100 && task.lastKnown.max === 100 ? '⚪ Приёмка по снимку' : '⚪ Приёмка не подтверждена';
 }
 function freshText(task) { return `${task.freshness.label}${task.updatedAt ? ` · ${escapeMarkdown(task.updatedAt)}` : ''}`; }
 function scopeText(selection) { return `${SCOPE_LABELS[selection.kind]} ${escapeMarkdown(selection.id)}${selection.kind === 'tasks' ? ` · ${selection.taskIds.map(escapeMarkdown).join(', ')}` : ''}`; }
@@ -287,7 +297,8 @@ function stagesMarkdown(task) {
     task.stageSource === 'display' ? 'Перечень для отображения; не участвует в расчёте процента и приёмке всей задачи.' : 'Веса этапов используются в расчёте оценки; приёмка всей задачи подтверждается отдельно.',
     `Свежесть этапов: ${freshText(task)}.${task.freshness.state === 'fresh' ? '' : ' Последние переданные статусы; их актуальность не подтверждена.'}`, ''];
   for (const phase of task.stages) {
-    lines.push(`- **${escapeMarkdown(phase.label)}** · ${PHASE_LABELS[phase.status]}${own(phase, 'weight') ? ` · вес ${exactNumber(phase.weight)}` : ''} · ${phase.evidence ? `evidence: ${escapeMarkdown(phase.evidence)}` : 'evidence не передан'}.`);
+    const status = task.freshness.state !== 'fresh' && phase.status === 'accepted' ? '⚪ Этап принят по снимку' : PHASE_LABELS[phase.status];
+    lines.push(`- **${escapeMarkdown(phase.label)}** · ${status}${own(phase, 'weight') ? ` · вес ${exactNumber(phase.weight)}` : ''} · ${phase.evidence ? `evidence: ${escapeMarkdown(phase.evidence)}` : 'evidence не передан'}.`);
   }
   const stageSource = task.stageSourceEvidence;
   lines.push('', `Источник этапов: ${stageSource ? `${escapeMarkdown(stageSource.ref)} — ${escapeMarkdown(stageSource.evidence)}` : 'не передан'}.`);
@@ -312,7 +323,7 @@ export function renderMarkdown(report) {
   lines.push(`**Прогресс · ${scopeText(report.selection)}**`, '', `Показ: ${report.renderedAt} · порог свежести ${report.staleAfterMinutes} мин. Шкала примерно: 10 сегментов, вниз по нижней границе.`, '');
   if (report.tasks.length === 1) {
     const task = report.tasks[0];
-    lines.push(`**${escapeMarkdown(task.title)}** · ${escapeMarkdown(task.id)}`, '', `${progressText(task)} · ${LABELS[task.status]}`, '', `- Сейчас: ${task.stage ? escapeMarkdown(task.stage) : 'стадия неизвестна'}.`,
+    lines.push(`**${escapeMarkdown(task.title)}** · ${escapeMarkdown(task.id)}`, '', `${progressText(task)} · ${statusText(task)}`, '', `- Сейчас: ${task.stage ? escapeMarkdown(task.stage) : 'стадия неизвестна'}.`,
       `- Принято: ${task.accepted.length ? task.accepted.map(item => `${escapeMarkdown(item.label)} [evidence: ${escapeMarkdown(item.evidence)}]`).join('; ') : 'подтверждённые результаты не переданы'}.`,
       `- Мешает / осталось: ${task.blockers.length ? task.blockers.map(escapeMarkdown).join('; ') : task.acceptanceConfirmed ? 'Открытых препятствий нет' : 'сведения о препятствиях и остатке не переданы'}.`, `- Свежесть: ${freshText(task)}.`, `- Источник оценки: ${evidenceText(task)}.`);
   } else if (report.tasks.length > 1) {
@@ -320,7 +331,7 @@ export function renderMarkdown(report) {
     for (const task of report.tasks) {
       const accepted = task.accepted.length ? task.accepted.map(item => escapeMarkdown(item.label)).join('; ') : 'не передано';
       const blockers = task.blockers.length ? task.blockers.map(escapeMarkdown).join('; ') : task.acceptanceConfirmed ? 'Открытых препятствий нет' : 'не передано';
-      lines.push(`| **${escapeMarkdown(task.title)}** · ${escapeMarkdown(task.id)} | ${progressText(task)} | ${LABELS[task.status]} · ${task.stage ? escapeMarkdown(task.stage) : 'стадия неизвестна'} | Принято: ${accepted}. Мешает/осталось: ${blockers} | ${freshText(task)} |`);
+      lines.push(`| **${escapeMarkdown(task.title)}** · ${escapeMarkdown(task.id)} | ${progressText(task)} | ${statusText(task)} · ${task.stage ? escapeMarkdown(task.stage) : 'стадия неизвестна'} | Принято: ${accepted}. Мешает/осталось: ${blockers} | ${freshText(task)} |`);
     }
     lines.push('', '**Источники**', '');
     for (const task of report.tasks) {

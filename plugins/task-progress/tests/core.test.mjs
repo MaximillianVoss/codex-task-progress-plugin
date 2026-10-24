@@ -122,6 +122,67 @@ function stagedTask(id = 'a') {
   ] }; return item;
 }
 
+test('accepted task cannot show 100 while weighted stages are unfinished', () => {
+  const item = stagedTask(); item.status = 'accepted'; item.acceptance = accepted().acceptance;
+  const contradicted = first(snapshot([item]));
+  assert.equal(contradicted.progress, null);
+  assert.equal(contradicted.lastKnown, null);
+  assert.equal(contradicted.acceptanceConfirmed, false);
+  assert.deepEqual(contradicted.stageCoverage, { acceptedWeight: 2, knownWeight: 10, totalWeight: 10 });
+  assert.match(contradicted.issues.join(' '), /противоречит незавершённым этапам/);
+  const markdown = renderMarkdown(run(snapshot([item])));
+  assert.match(markdown, /Приёмка не подтверждена/);
+  assert.doesNotMatch(markdown, /100% · принято|примерно 100%/);
+
+  for (const phase of item.progress.stages) { phase.status = 'accepted'; phase.evidence ??= `test:${phase.id}`; }
+  const acceptedStages = first(snapshot([item]));
+  assert.deepEqual(acceptedStages.progress, { min: 100, max: 100 });
+  assert.equal(acceptedStages.acceptanceConfirmed, true);
+  assert.deepEqual(acceptedStages.stageCoverage, { acceptedWeight: 10, knownWeight: 10, totalWeight: 10 });
+});
+
+test('blocked and paused weighted stages are known but do not add accepted progress', () => {
+  for (const status of ['blocked', 'paused']) {
+    const item = stagedTask(); item.progress.stages[1].status = status;
+    const result = first(snapshot([item]));
+    assert.deepEqual(result.progress, { min: 20, max: 20 });
+    assert.deepEqual(result.stageCoverage, { acceptedWeight: 2, knownWeight: 10, totalWeight: 10 });
+    assert.equal(result.stages[1].status, status);
+    assert.match(renderMarkdown(run(snapshot([item]))), status === 'blocked' ? /Блокировка/ : /Пауза/);
+
+    item.status = 'accepted'; item.acceptance = accepted().acceptance;
+    const contradicted = first(snapshot([item]));
+    assert.equal(contradicted.progress, null);
+    assert.equal(contradicted.acceptanceConfirmed, false);
+    assert.match(contradicted.issues.join(' '), /противоречит незавершённым этапам/);
+  }
+});
+
+test('unknown weighted stage still prevents a whole-task percentage beside blocked and paused stages', () => {
+  const item = stagedTask();
+  item.progress.stages[1].status = 'blocked';
+  item.progress.stages[2].status = 'unknown';
+  const result = first(snapshot([item]));
+  assert.equal(result.progress, null);
+  assert.deepEqual(result.stageCoverage, { acceptedWeight: 2, knownWeight: 5, totalWeight: 10 });
+  assert.match(result.issues.join(' '), /Статус части этапов неизвестен/);
+});
+
+test('stale accepted snapshot keeps historical acceptance and stage statuses distinct from current work', () => {
+  const item = stagedTask(); item.status = 'accepted';
+  for (const phase of item.progress.stages) { phase.status = 'accepted'; phase.evidence ??= `test:${phase.id}`; }
+  item.updatedAt = '2026-10-20T12:00:00Z';
+  item.acceptance = { acceptedAt: '2026-10-20T11:50:00Z', evidence: 'test:historical-acceptance' };
+  const report = run(snapshot([item]));
+  assert.equal(report.tasks[0].progress, null);
+  assert.deepEqual(report.tasks[0].lastKnown, { min: 100, max: 100 });
+  const markdown = renderMarkdown(report);
+  assert.match(markdown, /последняя подтверждённая приёмка: 100% по снимку/);
+  assert.match(markdown, /Приёмка по снимку/);
+  assert.match(markdown, /Этап принят по снимку/);
+  assert.doesNotMatch(markdown, /примерно 100%|🟢 Принято|🟢 Этап принят/);
+});
+
 test('display stages preserve a fixed checklist and never create coverage or acceptance', () => {
   const item = task(); item.progress.basis = 'fixed_checklist'; item.stages = displayStages();
   const result = first(snapshot([item]));

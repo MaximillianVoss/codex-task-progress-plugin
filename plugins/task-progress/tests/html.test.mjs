@@ -89,7 +89,8 @@ test('hostile snapshot text is escaped, bidi/control characters removed, and onl
   assert.match(html, /&lt;a href=&quot;https:\/\/evil.invalid&quot;&gt;click&lt;\/a&gt;/);
   const inert = html.replace(/<script>[\s\S]*?<\/script>/g, '');
   assert.equal((html.match(/<script>/g) ?? []).length, 1);
-  assert.doesNotMatch(inert, /<(?:script|img|iframe|a|button)\b|<svg\s+onload/i);
+  assert.equal((inert.match(/<button type="button" class="tp-(?:choice|theme-choice)"/g) ?? []).length, 6);
+  assert.doesNotMatch(inert.replace(/<button type="button" class="tp-(?:choice|theme-choice)"[\s\S]*?<\/button>/g, ''), /<(?:script|img|iframe|a|button)\b|<svg\s+onload/i);
   assert.doesNotMatch(html, /<(?:html|head|body)\b|<!doctype|\s(?:href|src|onerror|onload|onclick)=["']/i);
   assert.doesNotMatch(html, /[\u202a-\u202e\u2066-\u2069\u200e\u200f\u0000]/);
   assert.doesNotMatch(html, /@import|url\s*\(/i);
@@ -171,12 +172,16 @@ test('view, four complete themes and the stages toggle are explicit validated UI
   const report = reportOf(snapshot());
   const initial = renderHtml(report);
   assert.match(initial, /data-view="bar" data-theme="night" data-show-stages="true"/);
-  assert.match(initial, /<select data-pref="view"><option value="bar" selected>Полоса<\/option><option value="ring">Круг/);
+  assert.match(initial, /data-pref="view" data-value="bar" aria-pressed="true">Полоса<\/button>/);
+  assert.match(initial, /data-pref="view" data-value="ring" aria-pressed="false">Круг<\/button>/);
+  assert.equal((initial.match(/class="tp-theme-choice"/g) ?? []).length, 4);
+  assert.match(initial, /data-pref="theme" data-value="night" aria-pressed="true"/);
+  assert.match(initial, /class="tp-theme-swatch" data-swatch="night" aria-hidden="true"/);
   assert.match(initial, /type="checkbox" data-pref="stages" checked/);
   for (const theme of ['night', 'light', 'indigo', 'forest']) {
     const html = renderHtml(report, { theme, stages: false });
     assert.ok(html.includes(`data-theme="${theme}" data-show-stages="false"`));
-    assert.ok(html.includes(`<option value="${theme}" selected>`));
+    assert.ok(html.includes(`data-pref="theme" data-value="${theme}" aria-pressed="true"`));
     assert.doesNotMatch(html, /data-pref="stages" checked/);
   }
   for (const options of [{ view: 'pie' }, { view: null }, { theme: 'system' }, { theme: '"><script>' }, { stages: 'false' }, { arbitrary: true }, null, []]) assert.throws(() => renderHtml(report, options), TypeError);
@@ -192,7 +197,12 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   const report = reportOf(input); const before = structuredClone(report);
   const html = renderHtml(report);
   assert.match(html, /class="tp-fill" style="width:28%"/);
+  assert.match(html, /class="tp-stages-heading"/);
+  assert.match(html, /class="tp-stages-summary">1 из 7 принято/);
+  assert.match(html, /Перечень для ориентира · не меняет процент/);
   assert.match(html, /<ol class="tp-stage-list">/);
+  assert.match(html, /class="tp-stage-top"/);
+  assert.match(html, /grid-template-columns:29px minmax\(0,1fr\)/);
   for (const status of statuses) assert.ok(html.includes(`class="tp-stage-item" data-status="${status}"`));
   for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</p>`));
   assert.ok(html.indexOf('class="tp-stage-label">Этап 0') < html.indexOf('class="tp-stage-label">Этап 6'));
@@ -209,6 +219,8 @@ test('stale stage acceptance is labeled historical and absent stages are never i
   assert.match(html, /tp-stages-stale/);
   assert.match(html, /Этапы по последнему снимку/);
   assert.match(html, /class="tp-stage-status">Принят по снимку/);
+  assert.match(html, /\.tp-stages-stale \.tp-stage-item\[data-status="accepted"\]\{border-left-color:var\(--tp-line\)\}/);
+  assert.match(html, /\.tp-stages-stale \.tp-stage-item\[data-status="accepted"\] \.tp-stage-index\{border-color:var\(--tp-line\);color:var\(--tp-muted\)\}/);
   assert.doesNotMatch(html, /class="tp-stage-status">Принят<\/p>/);
   assert.match(htmlOf(snapshot()), /Этапы не переданы/);
   assert.doesNotMatch(htmlOf(snapshot()), /class="tp-stage-label">Подготовка/);
@@ -216,6 +228,50 @@ test('stale stage acceptance is labeled historical and absent stages are never i
   const unknownHtml = htmlOf(missingStages);
   assert.match(unknownHtml, /Этапы не переданы/);
   assert.doesNotMatch(unknownHtml, /Этапы по последнему снимку/);
+});
+
+test('blocked task with explicit unknown progress and no stages explains missing source data', () => {
+  // Same contract fields and selection as the real OpenServer screenshot; no project progress is inferred.
+  const input = {
+    schemaVersion: 1, selection: { kind: 'task', id: '01a0e255-483d-7602-9fb7-856b4d82843a' }, staleAfterMinutes: 60,
+    tasks: [{
+      id: '01a0e255-483d-7602-9fb7-856b4d82843a', title: 'Автозапуск курсового проекта на Windows',
+      projectId: null, portfolioId: null, status: 'blocked', stage: 'ВМ готова; интерактивный рабочий стол закрыт',
+      updatedAt: '2026-10-24T23:14:47Z', dataStatus: 'ok', accepted: [],
+      blockers: ['Нужен ручной вход в Windows для продолжения графической установки'], acceptance: null,
+      progress: { basis: 'unknown', scope: { kind: 'task', id: '01a0e255-483d-7602-9fb7-856b4d82843a' }, value: null,
+        source: { ref: 'safe:openserver-deployment-zip-20261024', evidence: 'ВМ готова; установка OpenServer не проверена' } }
+    }], aggregation: null
+  };
+  const report = buildReport(input, { now: '2026-10-24T23:20:00Z' });
+  assert.equal(report.tasks[0].progress, null);
+  assert.deepEqual(report.tasks[0].stages, []);
+  const html = renderHtml(report);
+  assert.match(html, /Источник не передал оценку прогресса; процент не вычислялся/);
+  assert.match(html, /Этапы не переданы источником/);
+  assert.match(html, /safe:openserver-deployment-zip-20261024/);
+  assert.doesNotMatch(html, /role="progressbar"|class="tp-percent">0%|class="tp-stage-item"/);
+});
+
+test('accepted stages cannot mask unfinished work, while old acceptance is explicitly historical', () => {
+  const input = snapshot(); const item = input.tasks[0];
+  item.status = 'accepted'; item.acceptance = { acceptedAt: '2026-10-21T11:50:00Z', evidence: 'test:final' };
+  item.progress = { basis: 'stages', scope: { kind: 'task', id: 'a' }, value: null, source: proof(), stages: [
+    { id: 'done', label: 'Подготовка', weight: 2, status: 'accepted', evidence: 'test:done' },
+    { id: 'open', label: 'Выпуск', weight: 3, status: 'working' }
+  ] };
+  const contradiction = htmlOf(input);
+  assert.match(contradiction, /Приёмка не подтверждена/);
+  assert.match(contradiction, /Приёмка всей задачи противоречит незавершённым этапам/);
+  assert.doesNotMatch(contradiction, /role="progressbar"|class="tp-percent">100%/);
+
+  item.progress.stages[1].status = 'accepted'; item.progress.stages[1].evidence = 'test:open-accepted';
+  item.updatedAt = '2026-10-20T12:00:00Z'; item.acceptance.acceptedAt = '2026-10-20T11:50:00Z';
+  const historical = htmlOf(input);
+  assert.match(historical, /Последняя подтверждённая приёмка: 100% по снимку/);
+  assert.match(historical, /Приёмка по снимку/);
+  assert.match(historical, /Принят по снимку/);
+  assert.doesNotMatch(historical, /≈ 100%|role="progressbar"|class="tp-percent">100%/);
 });
 
 test('hostile stage labels, source evidence and identifiers remain text and cannot become markup or script', () => {
@@ -232,25 +288,43 @@ test('hostile stage labels, source evidence and identifiers remain text and cann
 
 test('static controls change only UI preferences; host restores do not save and bridge errors are contained', () => {
   const script = htmlOf(snapshot()).match(/<script>([\s\S]*?)<\/script>/)[1];
-  const view = { value: 'bar' }, theme = { value: 'night' }, stages = { checked: true };
+  const choice = (preference, value) => {
+    const attributes = { 'data-pref': preference, 'aria-pressed': 'false' };
+    return { dataset: { value }, attributes, setAttribute: (key, next) => { attributes[key] = next; }, getAttribute: key => attributes[key] ?? null, parentElement: null };
+  };
+  const viewChoices = ['bar', 'ring'].map(value => choice('view', value));
+  const themeChoices = ['night', 'light', 'indigo', 'forest'].map(value => choice('theme', value));
+  const stages = { checked: true };
   const dataset = { view: 'bar', theme: 'night', showStages: 'true' };
   const listeners = new Map(); const hostListeners = new Map(); const saves = [];
-  const root = { dataset, querySelector: selector => selector === '[data-pref="view"]' ? view : selector === '[data-pref="theme"]' ? theme : stages, addEventListener: (type, handler) => listeners.set(type, handler) };
+  const root = { dataset, querySelectorAll: selector => selector === '[data-pref="view"]' ? viewChoices : themeChoices,
+    querySelector: selector => selector === '[data-pref="stages"]' ? stages : null,
+    addEventListener: (type, handler) => listeners.set(type, handler) };
+  for (const button of [...viewChoices, ...themeChoices]) button.parentElement = root;
   const host = { widgetState: { privateContent: { taskProgressUI: { view: 'ring', theme: 'light', showStages: false } } }, setWidgetState: preferences => { saves.push(preferences); return Promise.reject(new Error('Host unavailable')); } };
   const context = { document: { getElementById: id => id === 'task-progress-dashboard' ? root : null }, window: { openai: host, addEventListener: (type, handler) => hostListeners.set(type, handler) } };
   runInNewContext(script, context);
   assert.deepEqual(dataset, { view: 'ring', theme: 'light', showStages: 'false' });
+  assert.equal(viewChoices[1].attributes['aria-pressed'], 'true');
+  assert.equal(themeChoices[1].attributes['aria-pressed'], 'true');
   assert.equal(stages.checked, false); assert.equal(saves.length, 0);
-  theme.value = 'forest'; listeners.get('change')({ target: theme });
+  const swatch = { parentElement: themeChoices[3], getAttribute: () => null };
+  listeners.get('click')({ target: swatch });
   assert.equal(dataset.theme, 'forest'); assert.equal(saves.length, 1);
+  assert.equal(themeChoices[3].attributes['aria-pressed'], 'true');
+  assert.equal(themeChoices[1].attributes['aria-pressed'], 'false');
   assert.equal(JSON.stringify(saves[0]), JSON.stringify({ modelContent: { appearance: { view: 'ring', theme: 'forest', showStages: false } }, privateContent: { taskProgressUI: { view: 'ring', theme: 'forest', showStages: false } } }));
   hostListeners.get('openai:set_globals')({ detail: { globals: { widgetState: { privateContent: { taskProgressUI: { view: 'bar', theme: 'indigo', showStages: true } } } } } });
   assert.deepEqual(dataset, { view: 'bar', theme: 'indigo', showStages: 'true' });
+  assert.equal(viewChoices[0].attributes['aria-pressed'], 'true');
   assert.equal(saves.length, 1);
   hostListeners.get('openai:set_globals')({ detail: { globals: { widgetState: { privateContent: { taskProgressUI: { view: '<script>', theme: 'unknown', showStages: 'yes' } } } } } });
   assert.deepEqual(dataset, { view: 'bar', theme: 'indigo', showStages: 'true' });
+  listeners.get('click')({ target: {} });
   listeners.get('change')({ target: {} }); assert.equal(saves.length, 1);
   host.setWidgetState = () => { throw new Error('Disabled'); };
+  assert.doesNotThrow(() => listeners.get('click')({ target: viewChoices[1] }));
+  assert.equal(dataset.view, 'ring');
   stages.checked = false; assert.doesNotThrow(() => listeners.get('change')({ target: stages }));
   assert.equal(dataset.showStages, 'false');
   assert.doesNotThrow(() => runInNewContext(script, { ...context, window: { addEventListener() {} } }));
