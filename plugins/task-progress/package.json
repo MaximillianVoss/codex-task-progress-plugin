@@ -1,6 +1,6 @@
 {
   "name": "codex-task-progress",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "description": "Offline, evidence-scoped approximate progress renderer for a Codex skill plugin",

@@ -1,6 +1,6 @@
 {
   "name": "task-progress",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Честный примерный прогресс задач из явно выбранных безопасных данных.",
   "skills": "./skills/",
   "interface": {

@@ -102,12 +102,49 @@ function renderAggregate(total) {
 }
 
 const STYLE = `
-#${ROOT}{--tp-bg:#1b2229;--tp-panel:#20272f;--tp-line:#34404b;--tp-text:#f2f5f7;--tp-muted:#aeb8c4;--tp-accent:#36d2ed;--tp-warning:#f5c152;--tp-track:#424d59;--tp-interval:#36d2ed;--tp-interval-alt:#365867;--tp-question:#8c98a6;--tp-question-text:#182029;--tp-accepted:#82dfb1;--tp-checking:#c1adff;display:block;box-sizing:border-box;width:100%;max-width:1120px;margin:0;border:1px solid var(--tp-line);border-radius:12px;background:var(--tp-bg);color:var(--tp-text);font:14px/1.5 "Segoe UI",system-ui,sans-serif;color-scheme:dark;isolation:isolate;overflow-wrap:anywhere;text-align:left}
+#${ROOT}{--tp-bg:#1b2229;--tp-panel:#20272f;--tp-line:#34404b;--tp-text:#f2f5f7;--tp-muted:#aeb8c4;--tp-accent:#36d2ed;--tp-warning:#f5c152;--tp-track:#424d59;--tp-interval:#36d2ed;--tp-interval-alt:#365867;--tp-question:#8c98a6;--tp-question-text:#182029;--tp-accepted:#82dfb1;--tp-checking:#c1adff;display:block;box-sizing:border-box;width:100%;max-width:1120px;margin:0;border:1px solid var(--tp-line);border-radius:12px;background:var(--tp-bg);color:var(--tp-text);font:14px/1.5 "Segoe UI",system-ui,sans-serif;color-scheme:dark;isolation:isolate;overflow-wrap:anywhere;text-align:left;container-type:inline-size}
 #${ROOT}[data-theme="light"]{--tp-bg:#fffdf9;--tp-panel:#f3f0ed;--tp-line:#d8d3cc;--tp-text:#1f2430;--tp-muted:#535d6b;--tp-accent:#007a91;--tp-warning:#8b5100;--tp-track:#dce4e7;--tp-interval:#007a91;--tp-interval-alt:#b0dce5;--tp-question:#e2e6eb;--tp-question-text:#414c5c;--tp-accepted:#14633d;--tp-checking:#6941ad;color-scheme:light}
 #${ROOT}[data-theme="indigo"]{--tp-bg:#19172a;--tp-panel:#222039;--tp-line:#46425d;--tp-text:#f5f2ff;--tp-muted:#c3bdd5;--tp-accent:#b19aff;--tp-warning:#ffcf8d;--tp-track:#514866;--tp-interval:#b19aff;--tp-interval-alt:#6b568c;--tp-question:#5f5776;--tp-question-text:#f5f2ff;--tp-accepted:#a1e2c0;--tp-checking:#d1bfff}
 #${ROOT}[data-theme="forest"]{--tp-bg:#13241e;--tp-panel:#1a2e26;--tp-line:#3d594b;--tp-text:#effaf2;--tp-muted:#b2cabb;--tp-accent:#72d7a0;--tp-warning:#f3cf78;--tp-track:#375247;--tp-interval:#72d7a0;--tp-interval-alt:#3e7b5c;--tp-question:#5d7b6b;--tp-question-text:#f3faf5;--tp-accepted:#9be5b6;--tp-checking:#c2d9ff}
 #${ROOT} *,#${ROOT} *::before,#${ROOT} *::after{box-sizing:border-box;min-width:0}
 #${ROOT} p,#${ROOT} h2,#${ROOT} h3,#${ROOT} h4,#${ROOT} dl,#${ROOT} dd,#${ROOT} ul,#${ROOT} ol{margin:0}
+#${ROOT} .tp-visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+#${ROOT} .tp-dashboard-disclosure>summary{list-style:none;cursor:pointer}
+#${ROOT} .tp-dashboard-disclosure>summary::-webkit-details-marker{display:none}
+#${ROOT} .tp-dashboard-disclosure>summary:focus-visible{outline:2px solid var(--tp-accent);outline-offset:-3px;border-radius:10px}
+#${ROOT} .tp-dashboard-disclosure>summary:hover{background:var(--tp-panel)}
+#${ROOT} .tp-compact-summary{display:grid;grid-template-columns:66px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:84px;padding:10px 56px 10px 16px}
+#${ROOT} .tp-compact-ring{position:relative;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:conic-gradient(from -90deg,var(--tp-accent) 0 var(--tp-compact-progress),var(--tp-interval-alt) var(--tp-compact-progress) var(--tp-compact-interval),var(--tp-track) var(--tp-compact-interval));color:var(--tp-text);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#${ROOT} .tp-compact-ring::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--tp-bg)}
+#${ROOT} .tp-compact-ring>span{position:relative}
+#${ROOT} .tp-compact-range{font-size:11px}
+#${ROOT} .tp-compact-unknown{background:var(--tp-track);color:var(--tp-muted);font-size:22px}
+#${ROOT} .tp-compact-main{display:grid;gap:1px;min-width:0}
+#${ROOT} .tp-compact-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:1.25}
+#${ROOT} .tp-compact-state{color:var(--tp-muted);font-size:11px}
+#${ROOT} .tp-compact-stage-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;min-width:0;margin-top:3px}
+#${ROOT} .tp-compact-stage-caption,#${ROOT} .tp-compact-stages-off{color:var(--tp-muted);font-size:10px;white-space:normal}
+#${ROOT} .tp-compact-stages-off{display:none}
+#${ROOT}[data-show-stages="false"] .tp-compact-stage-wrap{display:none}
+#${ROOT}[data-show-stages="false"] .tp-compact-stages-off{display:block}
+#${ROOT} .tp-compact-stage-list{display:flex;flex:1;flex-wrap:wrap;min-width:0;max-width:280px;align-items:center}
+#${ROOT} .tp-compact-stage-node{position:relative;display:flex;align-items:center;justify-content:center;flex:1;min-width:17px;max-width:30px;height:20px}
+#${ROOT} .tp-compact-stage-node+.tp-compact-stage-node::before{content:"";position:absolute;left:-50%;width:100%;height:2px;background:var(--tp-line)}
+#${ROOT} .tp-compact-stage-dot{position:relative;z-index:1;display:grid;place-items:center;width:19px;height:19px;border:1px solid var(--tp-line);border-radius:50%;background:var(--tp-bg);color:var(--tp-muted);font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+#${ROOT} .tp-compact-stage-node[data-status="accepted"] .tp-compact-stage-dot{border-color:var(--tp-accepted);color:var(--tp-accepted)}
+#${ROOT} .tp-compact-stage-node[data-status="working"] .tp-compact-stage-dot{border-color:var(--tp-accent);color:var(--tp-accent)}
+#${ROOT} .tp-compact-stage-node[data-status="checking"] .tp-compact-stage-dot{border-color:var(--tp-checking);color:var(--tp-checking)}
+#${ROOT} .tp-compact-stage-node[data-status="blocked"] .tp-compact-stage-dot,#${ROOT} .tp-compact-stage-node[data-status="paused"] .tp-compact-stage-dot{border-color:var(--tp-warning);color:var(--tp-warning)}
+#${ROOT} .tp-compact-stage-list.tp-compact-stale .tp-compact-stage-node .tp-compact-stage-dot{border-color:var(--tp-line);color:var(--tp-muted)}
+#${ROOT} .tp-compact-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:5px 9px;border:1px solid var(--tp-line);border-radius:8px;color:var(--tp-text);font-size:11px;font-weight:650;white-space:nowrap}
+#${ROOT} .tp-dashboard-disclosure>summary:hover .tp-compact-action{border-color:var(--tp-accent)}
+#${ROOT} .tp-action-close{display:none}
+#${ROOT} .tp-dashboard-disclosure[open] .tp-action-open{display:none}
+#${ROOT} .tp-dashboard-disclosure[open] .tp-action-close{display:inline}
+#${ROOT} .tp-compact-chevron{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+#${ROOT} .tp-dashboard-disclosure[open] .tp-compact-chevron{transform:rotate(225deg)}
+#${ROOT} .tp-wide-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:7px 56px 7px 16px;color:var(--tp-muted);font-size:12px}
+#${ROOT} .tp-expanded{border-top:1px solid var(--tp-line)}
 #${ROOT} .tp-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:24px 56px 20px 26px}
 #${ROOT} .tp-kicker{margin-bottom:6px;color:var(--tp-muted);font-size:12px;font-weight:600;letter-spacing:.04em}
 #${ROOT} h2{font-size:24px;line-height:1.3;font-weight:650}
@@ -228,6 +265,8 @@ const STYLE = `
 @media(prefers-reduced-motion:reduce){#${ROOT} .tp-stage-chevron{transition:none}}
 @media(max-width:600px){#${ROOT} .tp-header{display:block;padding:20px 56px 16px 16px}#${ROOT} h2{font-size:21px}#${ROOT} .tp-meta{margin-top:12px;text-align:left}#${ROOT} .tp-selected{padding:0 16px 16px}#${ROOT} .tp-column-head{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}#${ROOT} .tp-task{grid-template-columns:minmax(0,1fr);gap:14px;padding:20px 16px 8px}#${ROOT} .tp-details-row{padding:0 16px 8px}#${ROOT} .tp-progress-cell{width:100%}#${ROOT} .tp-meter-line{gap:10px}#${ROOT} .tp-state{padding-top:2px}#${ROOT} .tp-details dl{grid-template-columns:minmax(0,1fr);gap:4px}#${ROOT} .tp-details dd+dt{margin-top:8px}#${ROOT} .tp-total{padding:20px 16px}#${ROOT} .tp-total h3{font-size:20px}#${ROOT} .tp-warnings{padding:14px 16px}#${ROOT} .tp-footer{padding:16px}#${ROOT} .tp-empty{padding:20px 16px}}
 @media(max-width:600px){#${ROOT} .tp-controls{padding:14px 16px 18px;gap:14px}#${ROOT} .tp-control-group[data-group="theme"]{width:100%}#${ROOT} .tp-theme-choice{min-width:calc(50% - 3px)}#${ROOT}[data-view="ring"] .tp-task{grid-template-columns:112px minmax(0,1fr);column-gap:14px}#${ROOT}[data-view="ring"] .tp-ring{width:112px;height:112px}#${ROOT}[data-view="ring"] .tp-ring-value{font-size:18px}}
+@media(max-width:600px){#${ROOT} .tp-compact-summary{grid-template-columns:58px minmax(0,1fr) auto;gap:9px;min-height:76px;padding:9px 48px 9px 12px}#${ROOT} .tp-compact-ring{width:56px;height:56px;font-size:14px}#${ROOT} .tp-compact-range{font-size:10px}#${ROOT} .tp-compact-unknown{font-size:20px}#${ROOT} .tp-compact-title{font-size:13px}#${ROOT} .tp-compact-stage-wrap{flex-wrap:wrap;gap:2px 7px}#${ROOT} .tp-compact-action{min-height:30px;padding:4px 6px;font-size:10px}#${ROOT} .tp-wide-summary{padding-right:48px}}
+@container (max-width:460px){#${ROOT} .tp-compact-summary{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"ring main" "ring action";gap:4px 9px;min-height:80px;padding:9px 48px 9px 12px}#${ROOT} .tp-compact-ring{grid-area:ring;align-self:center;width:54px;height:54px;font-size:14px}#${ROOT} .tp-compact-range{font-size:10px}#${ROOT} .tp-compact-unknown{font-size:20px}#${ROOT} .tp-compact-main{grid-area:main}#${ROOT} .tp-compact-title{font-size:12px}#${ROOT} .tp-compact-stage-wrap{flex-wrap:wrap;gap:2px 6px}#${ROOT} .tp-compact-action{grid-area:action;justify-self:start;min-height:27px;padding:3px 6px;font-size:10px}}
 `;
 
 // This constant never contains snapshot strings. It only changes presentation
@@ -297,6 +336,33 @@ const CONTROL_ICONS = {
 function controlIcon(value) {
   return `<span class="tp-icon-badge" data-icon="${value}" aria-hidden="true"><svg class="tp-control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${CONTROL_ICONS[value]}</svg></span>`;
 }
+function disclosureAction() {
+  return '<span class="tp-compact-action"><span class="tp-action-open">Подробнее</span><span class="tp-action-close">Свернуть</span><span class="tp-compact-chevron" aria-hidden="true"></span></span>';
+}
+function compactSummary(task, demo) {
+  const fresh = task.freshness.state === 'fresh';
+  const value = fresh ? currentValue(task) : null;
+  const label = value ? task.acceptanceConfirmed ? '100%' : estimateText(task, value) : '?';
+  const progressDescription = value ? `Прогресс: ${label}` : 'Текущий прогресс неизвестен';
+  const taskState = fresh ? task.status === 'accepted' && !task.acceptanceConfirmed ? 'Приёмка не подтверждена' : STATUS_LABELS[task.status] ?? STATUS_LABELS.unknown : `Снимок: ${task.freshness.label}`;
+  const state = demo ? `Демо · ${taskState}` : taskState;
+  const style = value ? ` style="--tp-compact-progress:${value.min}%;--tp-compact-interval:${value.max}%"` : '';
+  const stages = Array.isArray(task.stages) ? task.stages : [];
+  const accepted = stages.filter(stage => stage.status === 'accepted').length;
+  const stageCaption = stages.length ? `Этапы: ${accepted}/${stages.length} принято${fresh ? '' : ' по снимку'}` : 'Этапы не переданы';
+  const nodes = stages.slice(0, 6).map((stage, index) => {
+    const status = Object.hasOwn(STAGE_LABELS, stage.status) ? stage.status : 'unknown';
+    const description = `Этап ${index + 1}: ${stage.label}. ${STAGE_LABELS[status]}${fresh ? '' : ' по снимку'}`;
+    return `<span class="tp-compact-stage-node" role="listitem" data-status="${status}" aria-label="${text(description)}"><span class="tp-compact-stage-dot" aria-hidden="true">${index + 1}</span></span>`;
+  }).join('');
+  const rest = stages.length > 6 ? `<span class="tp-compact-stage-node tp-compact-stage-rest" role="listitem" aria-label="Ещё этапов: ${stages.length - 6}; полный список внутри"><span class="tp-compact-stage-dot" aria-hidden="true">+${stages.length - 6}</span></span>` : '';
+  const graph = stages.length ? `<span class="tp-compact-stage-list${fresh ? '' : ' tp-compact-stale'}" role="list" aria-label="Этапы задачи">${nodes}${rest}</span>` : '';
+  return `<summary class="tp-compact-summary"><span class="tp-compact-ring${value ? value.min === value.max ? '' : ' tp-compact-range' : ' tp-compact-unknown'}"${style} aria-hidden="true"><span>${text(label)}</span></span><span class="tp-compact-main"><strong class="tp-compact-title">${text(task.title)}</strong><span class="tp-compact-state">${text(state)}</span><span class="tp-compact-stage-wrap"><span class="tp-compact-stage-caption">${text(stageCaption)}</span>${graph}</span><span class="tp-compact-stages-off">Этапы скрыты</span></span><span class="tp-visually-hidden">${text(progressDescription)}.</span>${disclosureAction()}</summary>`;
+}
+function scopeSummary(report) {
+  const scope = SCOPE_LABELS[report.selection.kind] ?? report.selection.kind;
+  return `<summary class="tp-wide-summary"><span>${text(`Выбранная область: ${scope}`)} · задач: ${report.tasks.length}${report.demo ? ' · демо' : ''}</span>${disclosureAction()}</summary>`;
+}
 function renderControls(view, theme, stages) {
   const views = [['bar', 'Полоса'], ['ring', 'Круг']];
   const themes = [['night', 'Ночная'], ['light', 'Светлая'], ['indigo', 'Индиго'], ['forest', 'Лесная']];
@@ -318,5 +384,7 @@ export function renderHtml(report, options = {}) {
   const rows = report.tasks.length ? `<div class="tp-table" role="table" aria-label="Прогресс выбранных задач"><div class="tp-column-head${report.tasks.length === 1 ? ' tp-column-head-single' : ''}" role="row"><span role="columnheader">Задача</span><span role="columnheader">Прогресс</span><span role="columnheader">Состояние</span></div>${report.tasks.map(renderTask).join('')}</div>` : '<p class="tp-empty">Нет переданных задач. Прогресс неизвестен.</p>';
   const warnings = report.warnings.length ? `<section class="tp-warnings" aria-label="Предупреждения области"><ul>${report.warnings.map(warning => `<li>⚠ ${text(warning)}</li>`).join('')}</ul></section>` : '';
   const refs = [...new Set(report.tasks.filter(task => task.source).map(task => task.source.ref))];
-  return `<section id="${ROOT}" data-task-progress data-view="${view}" data-theme="${theme}" data-show-stages="${stages}" lang="ru" aria-label="${text(heading)}"><style>${STYLE}</style><header class="tp-header"><div><p class="tp-kicker">Пульт задач</p><h2>${text(heading)}</h2>${report.demo ? '<p class="tp-demo">Демонстрация · синтетические данные, не текущий прогресс рабочих проектов.</p>' : ''}</div><p class="tp-meta"><span>Показ: ${text(report.renderedAt)}</span><span>Порог свежести: ${text(report.staleAfterMinutes)} мин.</span></p></header>${renderControls(view, theme, stages)}${selected}${rows}${renderAggregate(report.aggregate)}${warnings}<footer class="tp-footer"><p>Источники: ${refs.length ? refs.map(text).join(' · ') : 'не переданы'}. Полные evidence — в подробностях задач.</p><p>Оценка относится только к выбранной области и времени. Evidence переданы источником; renderer их внешне не проверяет.</p></footer><script>${SCRIPT}</script></section>\n`;
+  const compact = report.selection.kind === 'task' && report.tasks.length === 1;
+  const summary = compact ? compactSummary(report.tasks[0], report.demo) : scopeSummary(report);
+  return `<section id="${ROOT}" data-task-progress data-view="${view}" data-theme="${theme}" data-show-stages="${stages}" lang="ru" aria-label="${text(heading)}"><style>${STYLE}</style><details class="tp-dashboard-disclosure${compact ? ' tp-dashboard-single' : ''}"${compact ? '' : ' open'}>${summary}<div class="tp-expanded"><header class="tp-header"><div><p class="tp-kicker">Пульт задач</p><h2>${text(heading)}</h2>${report.demo ? '<p class="tp-demo">Демонстрация · синтетические данные, не текущий прогресс рабочих проектов.</p>' : ''}</div><p class="tp-meta"><span>Показ: ${text(report.renderedAt)}</span><span>Порог свежести: ${text(report.staleAfterMinutes)} мин.</span></p></header>${renderControls(view, theme, stages)}${selected}${rows}${renderAggregate(report.aggregate)}${warnings}<footer class="tp-footer"><p>Источники: ${refs.length ? refs.map(text).join(' · ') : 'не переданы'}. Полные evidence — в подробностях задач.</p><p>Оценка относится только к выбранной области и времени. Evidence переданы источником; renderer их внешне не проверяет.</p></footer></div></details><script>${SCRIPT}</script></section>\n`;
 }

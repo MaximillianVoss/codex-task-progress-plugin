@@ -14,6 +14,8 @@ function snapshot(tasks = [task()], selection = { kind: 'task', id: 'a' }) { ret
 const reportOf = input => buildReport(input, { now: NOW });
 const htmlOf = input => renderHtml(reportOf(input));
 const demo = () => JSON.parse(readFileSync(new URL('../examples/multiple.safe.json', import.meta.url), 'utf8'));
+const plan = () => JSON.parse(readFileSync(new URL('../examples/plan.safe.json', import.meta.url), 'utf8'));
+const compactSummaryOf = html => html.match(/<summary class="tp-compact-summary">([\s\S]*?)<\/summary>/)?.[0] ?? '';
 
 test('dashboard presents fixed 28, a continuous 50–70 interval and unknown without a zero bar', () => {
   const html = htmlOf(demo());
@@ -220,6 +222,81 @@ test('single task omits the visible table header, ring is smaller and header res
   assert.match(single, /@media\(max-width:600px\)\{[^}]*\.tp-header\{display:block;padding:20px 56px 16px 16px/);
 });
 
+test('one explicitly selected task starts as a compact native disclosure with an honest 50% and stage graph', () => {
+  const html = htmlOf(plan());
+  const summary = compactSummaryOf(html);
+  assert.match(html, /<details class="tp-dashboard-disclosure tp-dashboard-single"><summary class="tp-compact-summary">/);
+  assert.ok(summary);
+  assert.match(summary, /--tp-compact-progress:50%;--tp-compact-interval:50%/);
+  assert.match(summary, /<span>≈ 50%<\/span>/);
+  assert.match(summary, /Этапы: 2\/4 принято/);
+  assert.equal((summary.match(/class="tp-compact-stage-node" role="listitem"/g) ?? []).length, 4);
+  assert.match(summary, /data-status="blocked" aria-label="Этап 3: Установить среду\. Заблокирован"/);
+  assert.match(summary, /class="tp-compact-action"/);
+  assert.match(summary, /Подробнее/);
+  assert.match(html, /<div class="tp-expanded"><header class="tp-header">/);
+  assert.match(html, /demo:package-check-accepted/);
+  assert.match(html, /demo:explicit-deployment-plan/);
+  assert.match(html, /\.tp-dashboard-disclosure>summary:focus-visible\{outline:2px solid var\(--tp-accent\)/);
+  assert.match(html, /\.tp-dashboard-disclosure\[open\] \.tp-action-close\{display:inline\}/);
+  assert.doesNotMatch(summary, /role="progressbar"|aria-valuenow=/);
+});
+
+test('compact card adapts to its own narrow width and keeps stage count and disclosure visible', () => {
+  const html = htmlOf(plan());
+  const summary = compactSummaryOf(html);
+  assert.match(html, /container-type:inline-size/);
+  assert.match(html, /@container \(max-width:460px\)\{[^}]*grid-template-areas:"ring main" "ring action"/);
+  assert.match(html, /@container \(max-width:460px\)\{[^}]*\.tp-compact-summary\{[^}]*grid-template-areas:"ring main" "ring action"/);
+  assert.match(html, /\.tp-compact-action\{grid-area:action;justify-self:start/);
+  assert.match(html, /\.tp-compact-stage-caption,#task-progress-dashboard \.tp-compact-stages-off\{[^}]*white-space:normal/);
+  assert.match(html, /\.tp-compact-stage-wrap\{[^}]*flex-wrap:wrap/);
+  assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:wrap/);
+  assert.match(summary, /Этапы: 2\/4 принято/);
+  assert.match(summary, /class="tp-compact-action"/);
+});
+
+test('compact unknown and stale states show a question mark, and missing stages are stated', () => {
+  const unknown = compactSummaryOf(htmlOf(snapshot([task('a', null)])));
+  assert.match(unknown, /tp-compact-unknown" aria-hidden="true"><span>\?<\/span>/);
+  assert.match(unknown, /Текущий прогресс неизвестен/);
+  assert.match(unknown, /Этапы не переданы/);
+  assert.doesNotMatch(unknown, /--tp-compact-progress:|class="tp-compact-stage-list/);
+
+  const input = snapshot();
+  input.tasks[0].updatedAt = '2026-10-20T12:00:00Z';
+  input.tasks[0].stages = { source: proof(), items: [{ id: 'old', label: 'Согласование', status: 'accepted', evidence: 'test:old-stage' }] };
+  const stale = compactSummaryOf(htmlOf(input));
+  assert.match(stale, /tp-compact-unknown" aria-hidden="true"><span>\?<\/span>/);
+  assert.match(stale, /Снимок: устарело/);
+  assert.match(stale, /tp-compact-stage-list tp-compact-stale/);
+  assert.match(stale, /Принят по снимку/);
+  assert.doesNotMatch(stale, /--tp-compact-progress:|≈ 28%/);
+});
+
+test('compact graph declares overflow while full disclosure retains every stage', () => {
+  const input = snapshot();
+  input.tasks[0].stages = { source: proof(), items: Array.from({ length: 8 }, (_, index) => ({ id: `s${index}`, label: `Пункт ${index + 1}`, status: 'pending' })) };
+  const html = htmlOf(input);
+  const summary = compactSummaryOf(html);
+  assert.equal((summary.match(/class="tp-compact-stage-node" role="listitem"/g) ?? []).length, 6);
+  assert.match(summary, /aria-label="Ещё этапов: 2; полный список внутри"/);
+  assert.match(summary, /\+2<\/span>/);
+  assert.match(html, /class="tp-stage-label">Пункт 8<\/span>/);
+});
+
+test('multi-task and project selections start open without presenting one task percentage as the area total', () => {
+  const multiple = htmlOf(demo());
+  assert.match(multiple, /<details class="tp-dashboard-disclosure" open><summary class="tp-wide-summary">/);
+  const wide = multiple.match(/<summary class="tp-wide-summary">([\s\S]*?)<\/summary>/)?.[0] ?? '';
+  assert.match(wide, /Выбранная область: проект · задач: 3/);
+  assert.doesNotMatch(wide, /28%|50–70%|tp-compact-ring|tp-compact-stage-list/);
+  assert.equal((multiple.match(/role="progressbar"/g) ?? []).length, 2);
+  const oneProjectTask = htmlOf(snapshot([task()], { kind: 'project', id: 'p' }));
+  assert.match(oneProjectTask, /<details class="tp-dashboard-disclosure" open><summary class="tp-wide-summary">/);
+  assert.doesNotMatch(oneProjectTask, /class="tp-dashboard-disclosure tp-dashboard-single"|class="tp-compact-summary"/);
+});
+
 test('stage panels preserve ordered source stages, evidence, all statuses and fixed checklist independence', () => {
   const input = snapshot(); input.tasks[0].progress.basis = 'fixed_checklist';
   const statuses = ['pending', 'working', 'checking', 'accepted', 'unknown', 'blocked', 'paused'];
@@ -241,7 +318,8 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   assert.match(html, /<\/summary><div class="tp-stage-proof"><p>ID: s3\.<\/p><p>Evidence: test:stage-accepted<\/p><\/div><\/details>/);
   assert.match(html, /Evidence: test:stage-accepted/);
   assert.match(html, /test:display-stages — Источник списка/);
-  assert.doesNotMatch(html, /Этапы по последнему снимку|[1-7]\s*\/\s*7|class="tp-percent">100%/);
+  assert.match(compactSummaryOf(html), /Этапы: 1\/7 принято/);
+  assert.doesNotMatch(html, /Этапы по последнему снимку|class="tp-percent">100%/);
   assert.deepEqual(report, before);
 });
 
