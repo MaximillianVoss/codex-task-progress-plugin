@@ -22,7 +22,7 @@ test('dashboard presents fixed 28, a continuous 50–70 interval and unknown wit
   assert.match(html, /Прогресс · проект demo-project/);
   assert.match(html, /Пульт задач/);
   assert.match(html, /Демонстрация · синтетические данные/);
-  assert.match(html, /По принятому checklist/);
+  assert.match(html, /По принятому чек-листу/);
   assert.match(html, /class="tp-fill" style="width:28%"/);
   assert.match(html, /class="tp-percent">28%<\/span>/);
   assert.match(html, /class="tp-fill" style="width:50%"/);
@@ -43,7 +43,7 @@ test('dashboard presents fixed 28, a continuous 50–70 interval and unknown wit
 
 test('progressbars expose exact minimum and complete interval to assistive technology', () => {
   const html = htmlOf(demo());
-  assert.match(html, /aria-valuemin="0" aria-valuemax="100" aria-valuenow="28" aria-valuetext="28% по принятому checklist"/);
+  assert.match(html, /aria-valuemin="0" aria-valuemax="100" aria-valuenow="28" aria-valuetext="28% по принятому чек-листу"/);
   assert.match(html, /aria-valuenow="50" aria-valuetext="50–70%, приблизительная оценка"/);
 });
 
@@ -144,7 +144,8 @@ test('stage coverage, missing acceptance confirmation and warnings remain presen
 
 test('fragment is scoped, has a narrow-screen layout and no demo label for real data', () => {
   const html = htmlOf(snapshot());
-  assert.match(html, /^<section id="task-progress-dashboard"/);
+  assert.match(html, /^<section data-task-progress/);
+  assert.doesNotMatch(html, /id="task-progress-dashboard"/);
   assert.match(html, /@media\(max-width:600px\)/);
   assert.match(html, /grid-template-columns:minmax\(0,1fr\)/);
   assert.match(html, /overflow-wrap:anywhere/);
@@ -157,10 +158,12 @@ test('fragment is scoped, has a narrow-screen layout and no demo label for real 
 test('ring uses quantitative SVG circles for exact 28 and a separate 50–70 arc without duplicate progress semantics', () => {
   const html = renderHtml(reportOf(demo()), { view: 'ring', theme: 'light', stages: true });
   assert.match(html, /data-view="ring" data-theme="light" data-show-stages="true"/);
-  assert.match(html, /<div class="tp-ring" aria-hidden="true"><svg viewBox="0 0 100 100" focusable="false" data-progress-graphic="ring">/);
+  assert.match(html, /<div class="tp-ring-meter" aria-hidden="true"><div class="tp-ring"><svg viewBox="0 0 100 100" focusable="false" data-progress-graphic="ring">/);
   assert.match(html, /class="tp-ring-fill"[^>]*pathLength="100" stroke-dasharray="28 100"/);
   assert.match(html, /class="tp-ring-fill"[^>]*pathLength="100" stroke-dasharray="50 100"/);
   assert.match(html, /class="tp-ring-interval"[^>]*stroke-dasharray="20 100" stroke-dashoffset="-50"/);
+  assert.match(html, /class="tp-ring-value"><span class="tp-ring-number">50<\/span><span class="tp-ring-unit">%<\/span><\/span><\/div><span class="tp-ring-reading">≈ 50–70%<\/span>/);
+  assert.doesNotMatch(html, /class="tp-ring-value">≈ 50–70%/);
   assert.equal((html.match(/role="progressbar"/g) ?? []).length, 2);
   assert.equal((html.match(/data-progress-graphic="ring"/g) ?? []).length, 2);
   const stale = snapshot(); stale.tasks[0].updatedAt = '2026-10-20T12:00:00Z';
@@ -168,6 +171,66 @@ test('ring uses quantitative SVG circles for exact 28 and a separate 50–70 arc
   assert.match(staleHtml, /Неизвестно/);
   assert.match(staleHtml, /Последняя оценка: ≈ 28%/);
   assert.doesNotMatch(staleHtml, /role="progressbar"|data-progress-graphic="ring"|<circle class="tp-ring-track"/);
+});
+
+test('large ring keeps long labels outside the arc and retains exact accessible values', () => {
+  const single = renderHtml(reportOf(plan()), { view: 'ring' });
+  assert.match(single, /class="tp-ring-value"><span class="tp-ring-number">50<\/span><span class="tp-ring-unit">%<\/span><\/span><\/div><span class="tp-ring-reading">≈ 50%<\/span>/);
+  assert.match(single, /\[data-task-progress\]\[data-view="ring"\] \.tp-single \.tp-ring-meter,\[data-task-progress\]\[data-view="ring"\] \.tp-single \.tp-ring\{width:100px\}/);
+  assert.match(single, /\[data-task-progress\]\[data-view="ring"\] \.tp-single \.tp-ring-meter,\[data-task-progress\]\[data-view="ring"\] \.tp-single \.tp-ring\{width:90px\}/);
+  const range = renderHtml(reportOf(snapshot([task('a', { min: 50, max: 70 })])), { view: 'ring' });
+  assert.match(range, /aria-valuenow="50" aria-valuetext="50–70%, приблизительная оценка"/);
+  assert.match(range, /class="tp-ring-value"><span class="tp-ring-number">50<\/span><span class="tp-ring-unit">%<\/span><\/span><\/div><span class="tp-ring-reading">≈ 50–70%<\/span>/);
+
+  const accepted = task('a', 100); accepted.status = 'accepted';
+  accepted.acceptance = { acceptedAt: '2026-10-21T11:50:00Z', evidence: 'test:final-acceptance' };
+  const acceptedHtml = renderHtml(reportOf(snapshot([accepted])), { view: 'ring' });
+  assert.match(acceptedHtml, /class="tp-ring-value"><span class="tp-ring-number tp-ring-number-three">100<\/span><span class="tp-ring-unit">%<\/span><\/span><\/div><span class="tp-ring-reading">принято<\/span>/);
+  assert.match(acceptedHtml, /aria-valuetext="100% · фактическая приёмка подтверждена"/);
+
+  const precise = task('a', 28.999); precise.progress.basis = 'fixed_checklist';
+  const preciseHtml = renderHtml(reportOf(snapshot([precise])), { view: 'ring' });
+  assert.match(preciseHtml, /class="tp-ring-value"><span class="tp-ring-symbol">%<\/span><\/span><\/div><span class="tp-ring-reading">28,999%<\/span>/);
+  assert.match(preciseHtml, /aria-valuenow="28.999" aria-valuetext="28,999% по принятому чек-листу"/);
+  assert.doesNotMatch(preciseHtml, /class="tp-ring-value">28,999%/);
+});
+
+test('ring view visually hides rather than removes the multi-task table headers', () => {
+  const html = renderHtml(reportOf(demo()), { view: 'ring' });
+  assert.match(html, /<div class="tp-table" role="table"[\s\S]*?<div class="tp-column-head" role="row"><span role="columnheader">Задача<\/span><span role="columnheader">Прогресс<\/span><span role="columnheader">Состояние<\/span>/);
+  assert.match(html, /\[data-task-progress\]\[data-view="ring"\] \.tp-column-head\{position:absolute;width:1px;height:1px;[^}]*clip-path:inset\(50%\);white-space:nowrap;border:0\}/);
+  assert.doesNotMatch(html, /\[data-task-progress\]\[data-view="ring"\] \.tp-column-head\{display:none\}/);
+});
+
+test('accent labels remain readable when a stage row is hovered in every theme', () => {
+  const style = htmlOf(snapshot()).match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+  const luminance = hex => {
+    const channels = hex.match(/.{2}/g).map(part => parseInt(part, 16) / 255)
+      .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  for (const theme of ['night', 'light', 'indigo', 'forest']) {
+    const selector = theme === 'night' ? '[data-task-progress]{' : `[data-task-progress][data-theme="${theme}"]{`;
+    const start = style.indexOf(selector);
+    assert.ok(start >= 0, theme);
+    const block = style.slice(start, style.indexOf('}', start) + 1);
+    const accent = block.match(/--tp-accent:#([0-9a-f]{6})/)?.[1];
+    const panel = block.match(/--tp-panel:#([0-9a-f]{6})/)?.[1];
+    assert.ok(accent && panel, theme);
+    const contrast = (Math.max(luminance(accent), luminance(panel)) + 0.05) / (Math.min(luminance(accent), luminance(panel)) + 0.05);
+    assert.ok(contrast >= 4.5, `${theme}: ${contrast.toFixed(2)}:1`);
+  }
+});
+
+test('stage heading follows the task heading level in single and multi-task views', () => {
+  const single = htmlOf(plan());
+  assert.match(single, /<h2>Развёртывание учебного проекта<\/h2>[\s\S]*?<h3>Этапы оценки<\/h3>/);
+  assert.doesNotMatch(single, /<h4>Этапы оценки<\/h4>/);
+  const input = snapshot([task('a'), task('b')], { kind: 'project', id: 'p' });
+  input.tasks[0].stages = { source: proof(), items: [{ id: 's1', label: 'Первый этап', status: 'pending' }] };
+  const multiple = htmlOf(input);
+  assert.match(multiple, /<h3>Задача a<\/h3>[\s\S]*?<h4>Этапы<\/h4>/);
+  assert.match(single, /\.tp-stages h3,\[data-task-progress\] \.tp-stages h4\{font-size:14px/);
 });
 
 test('view, four complete themes and the stages toggle are explicit validated UI preferences', () => {
@@ -232,7 +295,7 @@ test('appearance settings are a closed native disclosure inside the expanded das
   assert.match(settings, /data-pref="theme" data-value="forest" aria-label="Лесная тема" title="Лесная тема" aria-pressed="true"/);
   assert.match(settings, /<input type="checkbox" role="switch" data-pref="stages">/);
   assert.match(html, /\.tp-settings-summary:focus-visible\{outline:2px solid var\(--tp-accent\);outline-offset:3px\}/);
-  assert.match(html, /@container \(max-width:460px\)\{#task-progress-dashboard \.tp-settings\{padding:0 12px 10px\}/);
+  assert.match(html, /@container \(max-width:460px\)\{\[data-task-progress\] \.tp-settings\{padding:0 12px 10px\}/);
   const multiple = htmlOf(demo());
   assert.match(multiple, /<details class="tp-dashboard-disclosure" open>/);
   assert.match(multiple, /<details class="tp-settings"><summary class="tp-settings-summary">/);
@@ -286,7 +349,7 @@ test('one explicitly selected task starts as a compact native disclosure with an
   assert.match(summary, /<svg viewBox="0 0 64 64" focusable="false">/);
   assert.match(summary, /class="tp-compact-gauge-fill"[^>]*pathLength="100" stroke-dasharray="50 100"/);
   assert.match(summary, /class="tp-compact-gauge-number">50<\/span><span class="tp-compact-gauge-unit">%<\/span>/);
-  assert.match(summary, /class="tp-compact-reading">≈ оценка<\/span>/);
+  assert.match(summary, /class="tp-compact-reading">≈ 50%<\/span>/);
   assert.match(summary, /class="tp-visually-hidden">Прогресс: ≈ 50%\.<\/span>/);
   assert.match(summary, /2 из 4 этапов/);
   assert.equal((summary.match(/class="tp-compact-stage-node" role="listitem"/g) ?? []).length, 4);
@@ -306,7 +369,7 @@ test('compact custom meter keeps complete values outside the SVG for fixed, inte
   const fixed = task('a', 28); fixed.progress.basis = 'fixed_checklist';
   const fixedSummary = compactSummaryOf(htmlOf(snapshot([fixed])));
   assert.match(fixedSummary, /class="tp-compact-gauge-number">28<\/span><span class="tp-compact-gauge-unit">%<\/span>/);
-  assert.match(fixedSummary, /class="tp-compact-reading">по списку<\/span>/);
+  assert.match(fixedSummary, /class="tp-compact-reading">по чек-листу<\/span>/);
   assert.match(fixedSummary, /class="tp-compact-gauge-fill"[^>]*stroke-dasharray="28 100"/);
   assert.doesNotMatch(fixedSummary, /≈ 28%|class="tp-compact-gauge-range"/);
 
@@ -334,7 +397,7 @@ test('compact card adapts to its own narrow width and keeps stage count and disc
   assert.match(html, /@container \(max-width:460px\)\{[^}]*grid-template-areas:"ring main" "ring action"/);
   assert.match(html, /@container \(max-width:460px\)\{[^}]*\.tp-compact-summary\{[^}]*grid-template-areas:"ring main" "ring action"/);
   assert.match(html, /\.tp-compact-action\{grid-area:action;justify-self:end/);
-  assert.match(html, /\.tp-compact-stage-caption,#task-progress-dashboard \.tp-compact-stages-off\{[^}]*white-space:normal/);
+  assert.match(html, /\.tp-compact-stage-caption,\[data-task-progress\] \.tp-compact-stages-off\{[^}]*white-space:normal/);
   assert.match(html, /\.tp-compact-stage-wrap\{[^}]*flex-wrap:wrap/);
   assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:nowrap/);
   assert.match(summary, /2 из 4 этапов/);
@@ -357,7 +420,9 @@ test('timeline rail axis matches the center of each step at regular and narrow w
   assert.match(style, /\.tp-stage-item:not\(:last-child\)::before\{[^}]*left:calc\(var\(--tp-stage-axis\) - 1px\);width:2px/);
   assert.doesNotMatch(style, /\.tp-stage-list::before\{/);
   assert.match(style, /\.tp-stage-index\{[^}]*z-index:2;[^}]*align-self:start/);
-  assert.match(style, /\.tp-stage-row\{grid-template-columns:var\(--tp-stage-node-size\) minmax\(0,1fr\) auto 8px;gap:7px;padding-top:9px;padding-bottom:9px\}/);
+  assert.match(style, /\.tp-stage-row\{grid-template-columns:var\(--tp-stage-node-size\) minmax\(0,1fr\) 8px;grid-template-areas:"node label chevron" "node status chevron";gap:2px 7px;padding-top:9px;padding-bottom:9px\}/);
+  assert.match(style, /\.tp-stage-status\{grid-area:status;white-space:normal;font-size:11px\}/);
+  assert.match(style, /\.tp-stage-index\{grid-area:node\}/);
 });
 
 test('compact unknown and stale states show a question mark, and missing stages are stated', () => {
@@ -392,6 +457,8 @@ test('compact graph declares overflow while full disclosure retains every stage'
   assert.match(summary, /aria-label="Ещё этапов: 2; полный список внутри"/);
   assert.match(summary, /\+2<\/span>/);
   assert.match(html, /class="tp-stage-label">Пункт 8<\/span>/);
+  assert.match(summary, /0 из 8 этапов/);
+  assert.match(html, /@container \(max-width:300px\)\{\[data-task-progress\] \.tp-compact-stage-list\{display:none\}\}/);
 });
 
 test('multi-task and project selections start open without presenting one task percentage as the area total', () => {
@@ -428,8 +495,9 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   for (const status of statuses) assert.ok(html.includes(`class="tp-stage-item" data-status="${status}"`));
   for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</span>`));
   assert.ok(html.indexOf('class="tp-stage-label">Этап 0') < html.indexOf('class="tp-stage-label">Этап 6'));
-  assert.match(html, /<\/summary><div class="tp-stage-proof"><p>ID: s3\.<\/p><p>Evidence: test:stage-accepted<\/p><\/div><\/details>/);
-  assert.match(html, /Evidence: test:stage-accepted/);
+  assert.match(html, /<\/summary><div class="tp-stage-proof"><p>Код этапа: s3\.<\/p><p>Основание: test:stage-accepted<\/p><\/div><\/details>/);
+  assert.match(html, /Основание: test:stage-accepted/);
+  assert.doesNotMatch(html, /Evidence:|renderer их внешне/);
   assert.match(html, /test:display-stages — Источник списка/);
   assert.match(compactSummaryOf(html), /1 из 7 этапов/);
   assert.doesNotMatch(html, /Этапы по последнему снимку|class="tp-percent">100%/);
@@ -525,7 +593,7 @@ test('static controls change only UI preferences; host restores do not save and 
     addEventListener: (type, handler) => listeners.set(type, handler) };
   for (const button of [...viewChoices, ...themeChoices]) button.parentElement = root;
   const host = { widgetState: { privateContent: { taskProgressUI: { view: 'ring', theme: 'light', showStages: false } } }, setWidgetState: preferences => { saves.push(preferences); return Promise.reject(new Error('Host unavailable')); } };
-  const context = { document: { getElementById: id => id === 'task-progress-dashboard' ? root : null }, window: { openai: host, addEventListener: (type, handler) => hostListeners.set(type, handler) } };
+  const context = { document: { currentScript: { closest: selector => selector === '[data-task-progress]' ? root : null } }, window: { openai: host, addEventListener: (type, handler) => hostListeners.set(type, handler) } };
   runInNewContext(script, context);
   assert.deepEqual(dataset, { view: 'ring', theme: 'light', showStages: 'false' });
   assert.equal(viewChoices[1].attributes['aria-pressed'], 'true');
@@ -551,6 +619,43 @@ test('static controls change only UI preferences; host restores do not save and 
   stages.checked = false; assert.doesNotThrow(() => listeners.get('change')({ target: stages }));
   assert.equal(dataset.showStages, 'false');
   assert.doesNotThrow(() => runInNewContext(script, { ...context, window: { addEventListener() {} } }));
-  assert.doesNotMatch(script, /currentScript|\.closest\s*\(/);
-  assert.doesNotThrow(() => runInNewContext(script, { document: { getElementById: () => null } }));
+  assert.match(script, /document\.currentScript\?\.closest\('\[data-task-progress\]'\)/);
+  assert.doesNotMatch(script, /getElementById/);
+  assert.doesNotThrow(() => runInNewContext(script, { document: { currentScript: null } }));
+});
+
+test('two fragments in one document bind controls only to their own inline script', () => {
+  const fragment = htmlOf(snapshot());
+  const script = fragment.match(/<script>([\s\S]*?)<\/script>/)?.[1] ?? '';
+  const createCard = () => {
+    const dataset = { view: 'bar', theme: 'night', showStages: 'true' };
+    const listeners = new Map();
+    const root = {
+      dataset,
+      querySelectorAll: selector => selector === '[data-pref="view"]' ? views : themes,
+      querySelector: selector => selector === '[data-pref="stages"]' ? stages : null,
+      addEventListener: (type, handler) => listeners.set(type, handler)
+    };
+    const choice = (pref, value) => ({ dataset: { value }, getAttribute: key => key === 'data-pref' ? pref : null, setAttribute() {}, parentElement: root });
+    const views = ['bar', 'ring'].map(value => choice('view', value));
+    const themes = ['night', 'light', 'indigo', 'forest'].map(value => choice('theme', value));
+    const stages = { checked: true };
+    return { root, dataset, listeners, views, themes, stages };
+  };
+  const first = createCard();
+  const second = createCard();
+  let active = first.root;
+  const context = {
+    document: { get currentScript() { return { closest: selector => selector === '[data-task-progress]' ? active : null }; }, getElementById() { throw new Error('global lookup'); } },
+    window: { addEventListener() {} }
+  };
+  runInNewContext(script, context);
+  active = second.root;
+  runInNewContext(script, context);
+  second.listeners.get('click')({ target: second.views[1] });
+  second.listeners.get('click')({ target: second.themes[3] });
+  second.stages.checked = false;
+  second.listeners.get('change')({ target: second.stages });
+  assert.deepEqual(first.dataset, { view: 'bar', theme: 'night', showStages: 'true' });
+  assert.deepEqual(second.dataset, { view: 'ring', theme: 'forest', showStages: 'false' });
 });

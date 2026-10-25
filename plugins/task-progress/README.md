@@ -1,8 +1,8 @@
-# Task Progress 1.6.1
+# Task Progress 1.6.2
 
 Устанавливаемый Codex skill-плагин: русская шкала/таблица примерного прогресса, evidence, выбранная область и свежесть. Только локальное чтение явно переданных safe JSON/stdin. Node.js20+, без сторонних зависимостей.
 
-Установка из закреплённого GitHub ref, проверка и откат описаны в [инструкции репозитория](https://github.com/MaximillianVoss/codex-task-progress-plugin/tree/v1.6.1#readme). Если `$task-progress:task-progress` уже доступен, используйте его без повторной установки.
+Установка из закреплённого GitHub ref, проверка и откат описаны в [инструкции репозитория](https://github.com/MaximillianVoss/codex-task-progress-plugin/tree/v1.6.2#readme). Если `$task-progress:task-progress` уже доступен, используйте его без повторной установки.
 
 Быстрая проверка из этой папки:
 

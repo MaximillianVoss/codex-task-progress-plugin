@@ -2,7 +2,7 @@
 
 Skill-плагин показывает одну задачу компактным блоком прогресса, несколько — полным пультом. Результат включает точную область, примерно оценённый процент/диапазон, принятую оценку checklist, стадию, evidence, препятствия и свежесть. Unknown остаётся неизвестным; общий процент требует явного состава и весов. Работа или потраченное время сами по себе не добавляют проценты.
 
-Текущая версия распространения: **1.6.1**, закреплённый ref **v1.6.1**. Для одной задачи HTML показывает компактный круговой индикатор с читаемым значением, линию этапов и кнопку «Подробнее». Раскрытый вид получил более спокойную иерархию: название задачи не повторяется, прогресс и состояние читаются вместе, а этапы образуют вертикальный маршрут с линией, проходящей через центры узлов. Для нескольких задач полный пульт открыт сразу. Выбор полосы или круга, четырёх тем и показа этапов находится в закрытой по умолчанию панели «Настройки отображения». Кнопки тем — круглые пиктограммы без видимых подписей, с доступными названиями и подсказками. Примерную оценку можно подготовить по явному плану и подтверждённым шагам. [Репозиторий публичный](https://github.com/MaximillianVoss/codex-task-progress-plugin); для чтения и установки достаточно HTTPS.
+Текущая версия распространения: **1.6.2**, закреплённый ref **v1.6.2**. Для одной задачи HTML показывает компактный круговой индикатор с читаемым значением, линию этапов и кнопку «Подробнее». В раскрытом виде интервальная оценка показана рядом с кругом целиком, без переноса текста внутрь дуги; длинные этапы остаются читаемыми на узкой ширине. Заголовки таблицы доступны экранному диктору и в круговом виде, а подписи оснований даны по-русски. Для нескольких задач полный пульт открыт сразу. Выбор полосы или круга, четырёх тем и показа этапов находится в закрытой по умолчанию панели «Настройки отображения». Кнопки тем — круглые пиктограммы без видимых подписей, с доступными названиями и подсказками. Примерную оценку можно подготовить по явному плану и подтверждённым шагам. [Репозиторий публичный](https://github.com/MaximillianVoss/codex-task-progress-plugin); для чтения и установки достаточно HTTPS.
 
 В Codex с поддержкой inline-визуализации skill показывает графический результат в ленте беседы; текстовый Markdown остаётся запасным вариантом и форматом CLI по умолчанию. Закрепление блока над полем ввода в Codex не реализовано. Плагин не создаёт фоновые опросы, API-вызовы или записи в Planner. Нужен Node.js20+, установка npm-зависимостей не требуется.
 
@@ -20,8 +20,8 @@ Skill-плагин показывает одну задачу компактны
 
 ```powershell
 # Выберите свободную постоянную папку на X, вне OneDrive.
-wsl -d Ubuntu-22.04 --exec git clone --branch v1.6.1 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin-install-v1.6.1
-codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin-install-v1.6.1' --json
+wsl -d Ubuntu-22.04 --exec git clone --branch v1.6.2 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git /mnt/x/Проекты/codex-task-progress-plugin-install-v1.6.2
+codex plugin marketplace add 'X:/Проекты/codex-task-progress-plugin-install-v1.6.2' --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
 ```
@@ -29,7 +29,7 @@ codex plugin list --marketplace task-progress-local --json
 В новой Linux/macOS-среде:
 
 ```sh
-git clone --branch v1.6.1 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
+git clone --branch v1.6.2 --single-branch https://github.com/MaximillianVoss/codex-task-progress-plugin.git ./codex-task-progress-plugin
 codex plugin marketplace add ./codex-task-progress-plugin --json
 codex plugin add task-progress@task-progress-local --json
 codex plugin list --marketplace task-progress-local --json
@@ -53,7 +53,7 @@ npm run example
 pwsh -File scripts/Build-Release.ps1
 ```
 
-Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и оба вывода renderer с исходниками. Результат — `dist/task-progress-1.6.1-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
+Сборка не устанавливает плагин. Она проверяет код, собирает автономный ZIP с `.agents/plugins/marketplace.json` и `plugins/task-progress/`, извлекает пакет, сравнивает каждый файл и оба вывода renderer с исходниками. Результат — `dist/task-progress-1.6.2-marketplace.zip` и `dist/release.safe.json`. Публичная квитанция содержит только имя файла, размер, SHA256, версии и результаты проверок. Локальные абсолютные пути остаются в игнорируемых отчётах.
 
 Для отдельной демонстрации:
 
