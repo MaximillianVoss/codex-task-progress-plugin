@@ -282,8 +282,12 @@ test('one explicitly selected task starts as a compact native disclosure with an
   const summary = compactSummaryOf(html);
   assert.match(html, /<details class="tp-dashboard-disclosure tp-dashboard-single"><summary class="tp-compact-summary">/);
   assert.ok(summary);
-  assert.match(summary, /--tp-compact-progress:50%;--tp-compact-interval:50%/);
-  assert.match(summary, /<span>≈ 50%<\/span>/);
+  assert.match(summary, /class="tp-compact-meter" aria-hidden="true"/);
+  assert.match(summary, /<svg viewBox="0 0 64 64" focusable="false">/);
+  assert.match(summary, /class="tp-compact-gauge-fill"[^>]*pathLength="100" stroke-dasharray="50 100"/);
+  assert.match(summary, /class="tp-compact-gauge-number">50<\/span><span class="tp-compact-gauge-unit">%<\/span>/);
+  assert.match(summary, /class="tp-compact-reading">≈ оценка<\/span>/);
+  assert.match(summary, /class="tp-visually-hidden">Прогресс: ≈ 50%\.<\/span>/);
   assert.match(summary, /2 из 4 этапов/);
   assert.equal((summary.match(/class="tp-compact-stage-node" role="listitem"/g) ?? []).length, 4);
   assert.equal((summary.match(/class="tp-compact-stage-dot" aria-hidden="true">✓<\/span>/g) ?? []).length, 2);
@@ -298,6 +302,31 @@ test('one explicitly selected task starts as a compact native disclosure with an
   assert.doesNotMatch(summary, /role="progressbar"|aria-valuenow=/);
 });
 
+test('compact custom meter keeps complete values outside the SVG for fixed, interval and accepted progress', () => {
+  const fixed = task('a', 28); fixed.progress.basis = 'fixed_checklist';
+  const fixedSummary = compactSummaryOf(htmlOf(snapshot([fixed])));
+  assert.match(fixedSummary, /class="tp-compact-gauge-number">28<\/span><span class="tp-compact-gauge-unit">%<\/span>/);
+  assert.match(fixedSummary, /class="tp-compact-reading">по списку<\/span>/);
+  assert.match(fixedSummary, /class="tp-compact-gauge-fill"[^>]*stroke-dasharray="28 100"/);
+  assert.doesNotMatch(fixedSummary, /≈ 28%|class="tp-compact-gauge-range"/);
+
+  const ranged = task('a', { min: 50, max: 70 });
+  const rangeSummary = compactSummaryOf(htmlOf(snapshot([ranged])));
+  assert.match(rangeSummary, /class="tp-compact-gauge-number">50<\/span><span class="tp-compact-gauge-unit">%<\/span>/);
+  assert.match(rangeSummary, /class="tp-compact-reading">≈ 50–70%<\/span>/);
+  assert.match(rangeSummary, /class="tp-compact-gauge-range"[^>]*stroke-dasharray="20 100" stroke-dashoffset="-50"/);
+  assert.match(rangeSummary, /class="tp-compact-gauge-fill"[^>]*stroke-dasharray="50 100"/);
+  assert.match(rangeSummary, /class="tp-visually-hidden">Прогресс: ≈ 50–70%\.<\/span>/);
+
+  const accepted = task('a', 100); accepted.status = 'accepted';
+  accepted.acceptance = { acceptedAt: '2026-10-21T11:50:00Z', evidence: 'test:final-acceptance' };
+  assert.match(compactSummaryOf(htmlOf(snapshot([accepted]))), /class="tp-compact-gauge-number tp-compact-gauge-number-three">100<\/span><span class="tp-compact-gauge-unit">%<\/span>[\s\S]*class="tp-compact-reading">принято<\/span>/);
+  const tiny = compactSummaryOf(htmlOf(snapshot([task('a', 0.001)])));
+  assert.match(tiny, /class="tp-compact-gauge-symbol">%<\/span>/);
+  assert.match(tiny, /class="tp-compact-reading">≈ менее 0,01%<\/span>/);
+  assert.doesNotMatch(tiny, /conic-gradient|--tp-compact-progress/);
+});
+
 test('compact card adapts to its own narrow width and keeps stage count and disclosure visible', () => {
   const html = htmlOf(plan());
   const summary = compactSummaryOf(html);
@@ -307,14 +336,35 @@ test('compact card adapts to its own narrow width and keeps stage count and disc
   assert.match(html, /\.tp-compact-action\{grid-area:action;justify-self:end/);
   assert.match(html, /\.tp-compact-stage-caption,#task-progress-dashboard \.tp-compact-stages-off\{[^}]*white-space:normal/);
   assert.match(html, /\.tp-compact-stage-wrap\{[^}]*flex-wrap:wrap/);
-  assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:wrap/);
+  assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:nowrap/);
   assert.match(summary, /2 из 4 этапов/);
   assert.match(summary, /class="tp-compact-action"/);
 });
 
+test('timeline rail axis matches the center of each step at regular and narrow widths', () => {
+  const html = htmlOf(plan());
+  const style = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+  const regular = style.match(/\.tp-stage-list\{--tp-stage-node-size:(\d+)px;--tp-stage-axis:(\d+)px/);
+  const narrow = style.match(/\.tp-stage-list\{--tp-stage-node-size:(\d+)px;--tp-stage-axis:(\d+)px\}/);
+  const pad = style.match(/\.tp-stage-row\{[^}]*padding:(\d+)px (\d+)px/);
+  const rail = style.match(/\.tp-stage-item:not\(:last-child\)::before\{[^}]*top:var\(--tp-stage-node-center-y\);bottom:-(\d+)px/);
+  assert.ok(regular && narrow && pad && rail);
+  assert.equal(Number(regular[2]), Number(pad[2]) + Number(regular[1]) / 2);
+  assert.equal(Number(narrow[2]), Number(pad[2]) + Number(narrow[1]) / 2);
+  assert.equal(22, Number(pad[1]) + Number(regular[1]) / 2);
+  assert.equal(22, 9 + Number(narrow[1]) / 2);
+  assert.equal(Number(rail[1]), 22 + 2);
+  assert.match(style, /\.tp-stage-item:not\(:last-child\)::before\{[^}]*left:calc\(var\(--tp-stage-axis\) - 1px\);width:2px/);
+  assert.doesNotMatch(style, /\.tp-stage-list::before\{/);
+  assert.match(style, /\.tp-stage-index\{[^}]*z-index:2;[^}]*align-self:start/);
+  assert.match(style, /\.tp-stage-row\{grid-template-columns:var\(--tp-stage-node-size\) minmax\(0,1fr\) auto 8px;gap:7px;padding-top:9px;padding-bottom:9px\}/);
+});
+
 test('compact unknown and stale states show a question mark, and missing stages are stated', () => {
   const unknown = compactSummaryOf(htmlOf(snapshot([task('a', null)])));
-  assert.match(unknown, /tp-compact-unknown" aria-hidden="true"><span>\?<\/span>/);
+  assert.match(unknown, /class="tp-compact-meter tp-compact-unknown" aria-hidden="true"/);
+  assert.match(unknown, /class="tp-compact-gauge-symbol">\?<\/span>/);
+  assert.match(unknown, /class="tp-compact-reading">нет данных<\/span>/);
   assert.match(unknown, /Текущий прогресс неизвестен/);
   assert.match(unknown, /Этапы не переданы/);
   assert.doesNotMatch(unknown, /--tp-compact-progress:|class="tp-compact-stage-list/);
@@ -323,7 +373,8 @@ test('compact unknown and stale states show a question mark, and missing stages 
   input.tasks[0].updatedAt = '2026-10-20T12:00:00Z';
   input.tasks[0].stages = { source: proof(), items: [{ id: 'old', label: 'Согласование', status: 'accepted', evidence: 'test:old-stage' }] };
   const stale = compactSummaryOf(htmlOf(input));
-  assert.match(stale, /tp-compact-unknown" aria-hidden="true"><span>\?<\/span>/);
+  assert.match(stale, /class="tp-compact-meter tp-compact-unknown" aria-hidden="true"/);
+  assert.match(stale, /class="tp-compact-gauge-symbol">\?<\/span>/);
   assert.match(stale, /Снимок: устарело/);
   assert.match(stale, /class="tp-compact-state" data-status="unknown"/);
   assert.match(stale, /tp-compact-stage-list tp-compact-stale/);
@@ -348,7 +399,7 @@ test('multi-task and project selections start open without presenting one task p
   assert.match(multiple, /<details class="tp-dashboard-disclosure" open><summary class="tp-wide-summary">/);
   const wide = multiple.match(/<summary class="tp-wide-summary">([\s\S]*?)<\/summary>/)?.[0] ?? '';
   assert.match(wide, /Выбранная область: проект · задач: 3/);
-  assert.doesNotMatch(wide, /28%|50–70%|tp-compact-ring|tp-compact-stage-list/);
+  assert.doesNotMatch(wide, /28%|50–70%|tp-compact-meter|tp-compact-stage-list/);
   assert.equal((multiple.match(/role="progressbar"/g) ?? []).length, 2);
   const oneProjectTask = htmlOf(snapshot([task()], { kind: 'project', id: 'p' }));
   assert.match(oneProjectTask, /<details class="tp-dashboard-disclosure" open><summary class="tp-wide-summary">/);
@@ -367,9 +418,12 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   assert.match(html, /Перечень для ориентира · не меняет процент/);
   assert.match(html, /<ol class="tp-stage-list">/);
   assert.match(html, /<details class="tp-stage-disclosure"><summary class="tp-stage-row">/);
-  assert.match(html, /grid-template-columns:28px minmax\(0,1fr\) auto 9px/);
-  assert.match(html, /\.tp-stage-row\{[^}]*min-height:44px;padding:6px 5px/);
-  assert.match(html, /\.tp-stage-list::before\{[^}]*left:14px;width:2px/);
+  assert.match(html, /grid-template-columns:var\(--tp-stage-node-size\) minmax\(0,1fr\) auto 9px/);
+  assert.match(html, /\.tp-stage-row\{[^}]*min-height:44px;padding:8px 5px/);
+  assert.match(html, /\.tp-stage-list\{--tp-stage-node-size:28px;--tp-stage-axis:19px;--tp-stage-node-center-y:22px;--tp-stage-gap:2px/);
+  assert.match(html, /\.tp-stage-item:not\(:last-child\)::before\{[^}]*left:calc\(var\(--tp-stage-axis\) - 1px\);width:2px/);
+  assert.match(html, /\.tp-stage-index\{[^}]*z-index:2;[^}]*width:var\(--tp-stage-node-size\);height:var\(--tp-stage-node-size\)/);
+  assert.match(html, /\.tp-stage-list\{--tp-stage-node-size:26px;--tp-stage-axis:18px\}/);
   assert.match(html, /class="tp-stage-chevron" aria-hidden="true"/);
   for (const status of statuses) assert.ok(html.includes(`class="tp-stage-item" data-status="${status}"`));
   for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</span>`));

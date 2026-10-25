@@ -1,6 +1,6 @@
 {
   "name": "codex-task-progress-marketplace",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": true,
   "type": "module",
   "description": "Versioned GitHub distribution of the offline Codex Task Progress skill plugin",
