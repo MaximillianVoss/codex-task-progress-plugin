@@ -17,7 +17,7 @@ test('marketplace resolves within the repository to a complete plugin', async ()
 test('repository/plugin/compatibility versions agree and pin the documented release', async () => {
   const repository = await readJson('package.json'); const plugin = await readJson('plugins/task-progress/plugin.json');
   const compatibility = await readJson('plugins/task-progress/.codex-plugin/plugin.json'); const npm = await readJson('plugins/task-progress/package.json');
-  assert.equal(repository.version, '1.5.0'); assert.equal(plugin.version, repository.version); assert.equal(compatibility.version, plugin.version); assert.equal(npm.version, plugin.version);
+  assert.equal(repository.version, '1.6.0'); assert.equal(plugin.version, repository.version); assert.equal(compatibility.version, plugin.version); assert.equal(npm.version, plugin.version);
   const readme = await readFile(path.join(root, 'README.md'), 'utf8'); assert.ok(readme.includes('--branch v' + repository.version));
 });
 test('release receipt builder excludes machine paths and does not claim installation', async () => {

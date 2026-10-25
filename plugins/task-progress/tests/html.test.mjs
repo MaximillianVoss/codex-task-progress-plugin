@@ -38,7 +38,7 @@ test('dashboard presents fixed 28, a continuous 50–70 interval and unknown wit
   const visible = html.replace(/<style>[\s\S]*?<\/style>/g, '').replace(/<details\b[^>]*>[\s\S]*?<\/details>/g, '');
   assert.doesNotMatch(visible, /Следующий контрольный пункт|2026-10-21T12:00:00Z|Сведения о препятствиях и остатке не переданы/);
   assert.match(html, /<details class="tp-details"><summary>Подробности<\/summary><dl><dt>ID задачи<\/dt><dd>demo-g2/);
-  assert.match(html, /grid-template-columns:minmax\(0,1fr\) 90px/);
+  assert.match(html, /grid-template-columns:minmax\(0,1fr\) minmax\(74px,max-content\)/);
 });
 
 test('progressbars expose exact minimum and complete interval to assistive technology', () => {
@@ -255,17 +255,26 @@ test('native disclosures animate only with supported CSS and honor reduced motio
   assert.equal((html.match(/<script>/g) ?? []).length, 1);
 });
 
-test('single task omits the visible table header, ring is smaller and header reserves menu space', () => {
+test('single task uses one visible title, a quiet progress and status layout, and leaves room for the host menu', () => {
   const single = htmlOf(snapshot());
   const multiple = htmlOf(demo());
-  assert.match(single, /<div class="tp-column-head tp-column-head-single" role="row"><span role="columnheader">Задача<\/span><span role="columnheader">Прогресс<\/span><span role="columnheader">Состояние<\/span><\/div>/);
-  assert.match(single, /\.tp-column-head-single\{position:absolute;width:1px;height:1px;[^}]*clip-path:inset\(50%\)/);
+  const singleMarkup = single.replace(/<style>[\s\S]*?<\/style>/, '').replace(/<script>[\s\S]*?<\/script>/, '');
+  assert.match(singleMarkup, /<h2>Задача a<\/h2>/);
+  assert.doesNotMatch(singleMarkup, /<h3>Задача a<\/h3>|<span role="columnheader">Задача<\/span>/);
+  assert.match(singleMarkup, /<section class="tp-table tp-single" aria-label="Прогресс задачи Задача a">/);
+  assert.match(single, /\.tp-single \.tp-task\{grid-template-columns:minmax\(0,1\.6fr\) minmax\(170px,\.8fr\);grid-template-areas:"basis basis" "progress state"/);
+  assert.match(single, /\.tp-dashboard-single\[open\] \.tp-compact-main\{display:none\}/);
+  assert.match(single, /Показано: 21\.10\.2026, 12:10 UTC/);
+  assert.doesNotMatch(singleMarkup, /Показ: 2026-10-21T12:10:00Z/);
+  assert.match(singleMarkup, /<details class="tp-footer tp-details"><summary>Источники и ограничения<\/summary>/);
   assert.match(multiple, /<div class="tp-column-head" role="row"><span role="columnheader">Задача/);
-  assert.doesNotMatch(multiple, /class="tp-column-head tp-column-head-single"/);
+  assert.doesNotMatch(multiple, /class="tp-table tp-single"/);
   assert.match(single, /\.tp-ring\{[^}]*width:124px;height:124px/);
   assert.match(single, /\[data-view="ring"\] \.tp-task\{grid-template-columns:124px minmax\(0,1fr\)/);
-  assert.match(single, /\.tp-header\{[^}]*padding:24px 56px 20px 26px/);
-  assert.match(single, /@media\(max-width:600px\)\{[^}]*\.tp-header\{display:block;padding:20px 56px 16px 16px/);
+  assert.match(single, /\.tp-header\{[^}]*padding:20px 56px 12px 22px/);
+  assert.match(single, /@media\(max-width:600px\)\{[^}]*\.tp-header\{display:block;padding:18px 48px 12px 16px/);
+  assert.match(single, /@container \(max-width:620px\)/);
+  assert.match(single, /\.tp-single \.tp-task\{grid-template-columns:minmax\(0,1fr\);grid-template-areas:"basis" "progress" "state"/);
 });
 
 test('one explicitly selected task starts as a compact native disclosure with an honest 50% and stage graph', () => {
@@ -275,8 +284,9 @@ test('one explicitly selected task starts as a compact native disclosure with an
   assert.ok(summary);
   assert.match(summary, /--tp-compact-progress:50%;--tp-compact-interval:50%/);
   assert.match(summary, /<span>≈ 50%<\/span>/);
-  assert.match(summary, /Этапы: 2\/4 принято/);
+  assert.match(summary, /2 из 4 этапов/);
   assert.equal((summary.match(/class="tp-compact-stage-node" role="listitem"/g) ?? []).length, 4);
+  assert.equal((summary.match(/class="tp-compact-stage-dot" aria-hidden="true">✓<\/span>/g) ?? []).length, 2);
   assert.match(summary, /data-status="blocked" aria-label="Этап 3: Установить среду\. Заблокирован"/);
   assert.match(summary, /class="tp-compact-action"/);
   assert.match(summary, /Подробнее/);
@@ -298,7 +308,7 @@ test('compact card adapts to its own narrow width and keeps stage count and disc
   assert.match(html, /\.tp-compact-stage-caption,#task-progress-dashboard \.tp-compact-stages-off\{[^}]*white-space:normal/);
   assert.match(html, /\.tp-compact-stage-wrap\{[^}]*flex-wrap:wrap/);
   assert.match(html, /\.tp-compact-stage-list\{[^}]*flex-wrap:wrap/);
-  assert.match(summary, /Этапы: 2\/4 принято/);
+  assert.match(summary, /2 из 4 этапов/);
   assert.match(summary, /class="tp-compact-action"/);
 });
 
@@ -315,8 +325,10 @@ test('compact unknown and stale states show a question mark, and missing stages 
   const stale = compactSummaryOf(htmlOf(input));
   assert.match(stale, /tp-compact-unknown" aria-hidden="true"><span>\?<\/span>/);
   assert.match(stale, /Снимок: устарело/);
+  assert.match(stale, /class="tp-compact-state" data-status="unknown"/);
   assert.match(stale, /tp-compact-stage-list tp-compact-stale/);
   assert.match(stale, /Принят по снимку/);
+  assert.match(htmlOf(input), /\.tp-compact-stage-list\.tp-compact-stale \.tp-compact-stage-node \.tp-compact-stage-dot\{[^}]*background:var\(--tp-bg\)/);
   assert.doesNotMatch(stale, /--tp-compact-progress:|≈ 28%/);
 });
 
@@ -355,8 +367,9 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   assert.match(html, /Перечень для ориентира · не меняет процент/);
   assert.match(html, /<ol class="tp-stage-list">/);
   assert.match(html, /<details class="tp-stage-disclosure"><summary class="tp-stage-row">/);
-  assert.match(html, /grid-template-columns:22px minmax\(0,1fr\) auto 9px/);
-  assert.match(html, /\.tp-stage-row\{[^}]*min-height:36px;padding:5px 2px/);
+  assert.match(html, /grid-template-columns:28px minmax\(0,1fr\) auto 9px/);
+  assert.match(html, /\.tp-stage-row\{[^}]*min-height:44px;padding:6px 5px/);
+  assert.match(html, /\.tp-stage-list::before\{[^}]*left:14px;width:2px/);
   assert.match(html, /class="tp-stage-chevron" aria-hidden="true"/);
   for (const status of statuses) assert.ok(html.includes(`class="tp-stage-item" data-status="${status}"`));
   for (const label of ['Ожидает', 'В работе', 'Проверка', 'Принят', 'Неизвестно', 'Заблокирован', 'Пауза']) assert.ok(html.includes(`class="tp-stage-status">${label}</span>`));
@@ -364,7 +377,7 @@ test('stage panels preserve ordered source stages, evidence, all statuses and fi
   assert.match(html, /<\/summary><div class="tp-stage-proof"><p>ID: s3\.<\/p><p>Evidence: test:stage-accepted<\/p><\/div><\/details>/);
   assert.match(html, /Evidence: test:stage-accepted/);
   assert.match(html, /test:display-stages — Источник списка/);
-  assert.match(compactSummaryOf(html), /Этапы: 1\/7 принято/);
+  assert.match(compactSummaryOf(html), /1 из 7 этапов/);
   assert.doesNotMatch(html, /Этапы по последнему снимку|class="tp-percent">100%/);
   assert.deepEqual(report, before);
 });
